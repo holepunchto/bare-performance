@@ -1,0 +1,35 @@
+{
+  "name": "bare-performance",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./index.js",
+    "./package": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "binding.c",
+    "binding.js",
+    "CMakeLists.txt",
+    "prebuilds"
+  ],
+  "addon": true,
+  "scripts": {
+    "test": "prettier . --check && bare test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/bare-performance.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/bare-performance/issues"
+  },
+  "homepage": "https://github.com/holepunchto/bare-performance#readme",
+  "devDependencies": {
+    "brittle": "^3.13.1",
+    "cmake-bare": "^1.5.4",
+    "prettier": "^3.5.3",
+    "prettier-config-standard": "^7.0.0"
+  }
+}
