@@ -1,5 +1,7 @@
 # bare-performance
 
+Performance monitoring for Bare.
+
 ```
 npm i bare-performance
 ```
