@@ -56,6 +56,13 @@ static js_value_t *
 bare_performance_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
+  uv_loop_t *loop;
+  err = js_get_env_loop(env, &loop);
+  assert(err == 0);
+
+  err = uv_loop_configure(loop, UV_METRICS_IDLE_TIME);
+  assert(err == 0);
+
 #define V(name, fn) \
   { \
     js_value_t *val; \
