@@ -32,5 +32,8 @@
     "cmake-bare": "^1.5.4",
     "prettier": "^3.5.3",
     "prettier-config-standard": "^7.0.0"
+  },
+  "dependencies": {
+    "bare-hrtime": "^2.0.11"
   }
 }

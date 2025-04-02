@@ -1,4 +1,11 @@
+const hrtime = require('bare-hrtime')
 const binding = require('./binding')
+
+const { BARE_START } = binding
+
+exports.now = function now() {
+  return Number(hrtime.bigint() - BARE_START) / 1e6
+}
 
 exports.idleTime = function idleTime() {
   return binding.idleTime()

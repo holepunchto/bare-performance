@@ -1,6 +1,10 @@
 const test = require('brittle')
 const performance = require('.')
 
+test('now', (t) => {
+  t.comment(performance.now())
+})
+
 test('idleTime', (t) => {
   t.plan(1)
 

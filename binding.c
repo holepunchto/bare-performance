@@ -66,6 +66,18 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
 #define V(name, fn) \
   { \
     js_value_t *val; \
+    err = js_create_bigint_uint64(env, fn(), &val); \
+    assert(err == 0); \
+    err = js_set_named_property(env, exports, name, val); \
+    assert(err == 0); \
+  }
+
+  V("BARE_START", uv_hrtime)
+#undef V
+
+#define V(name, fn) \
+  { \
+    js_value_t *val; \
     err = js_create_function(env, name, -1, fn, NULL, &val); \
     assert(err == 0); \
     err = js_set_named_property(env, exports, name, val); \
