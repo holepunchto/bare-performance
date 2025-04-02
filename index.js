@@ -1,10 +1,8 @@
 const hrtime = require('bare-hrtime')
 const binding = require('./binding')
 
-const { BARE_START } = binding
-
 exports.now = function now() {
-  return nanoToMilli(hrtime.bigint() - BARE_START)
+  return nanoToMilli(hrtime.bigint() - binding.BARE_START)
 }
 
 exports.eventLoopUtilization = function eventLoopUtilization(
