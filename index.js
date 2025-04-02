@@ -8,8 +8,11 @@ exports.metricsInfo = function metricsInfo() {
   return binding.metricsInfo()
 }
 
-// For node.js compatibility
-exports.PerformanceNodeTiming = class PerformanceNodeTiming {
+// For Node.js compatibility
+exports.performance = exports
+
+// For Node.js compatibility
+class PerformanceNodeTiming {
   get idleTime() {
     return exports.idleTime()
   }
@@ -19,5 +22,5 @@ exports.PerformanceNodeTiming = class PerformanceNodeTiming {
   }
 }
 
-// For node.js compatibility
-exports.performance = { nodeTiming: new exports.PerformanceNodeTiming() }
+// For Node.js compatibility
+exports.nodeTiming = new PerformanceNodeTiming()

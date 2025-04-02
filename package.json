@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "description": "Performance monitoring for Bare",
   "exports": {
-    ".": "./index.js",
-    "./package": "./package.json"
+    "./package": "./package.json",
+    ".": "./index.js"
   },
   "files": [
     "index.js",

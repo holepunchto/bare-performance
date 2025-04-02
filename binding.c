@@ -5,7 +5,7 @@
 #include <uv.h>
 
 static js_value_t *
-bare_performance_idle_time (js_env_t *env, js_callback_info_t *info) {
+bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   uv_loop_t *loop;
@@ -20,7 +20,7 @@ bare_performance_idle_time (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_performance_metrics_info (js_env_t *env, js_callback_info_t *info) {
+bare_performance_metrics_info(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   uv_loop_t *loop;
@@ -40,7 +40,6 @@ bare_performance_metrics_info (js_env_t *env, js_callback_info_t *info) {
     js_value_t *value; \
     err = js_create_int64(env, metrics.property, &value); \
     assert(err == 0); \
-\
     err = js_set_named_property(env, result, name, value); \
     assert(err == 0); \
   }
@@ -54,7 +53,7 @@ bare_performance_metrics_info (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_performance_exports (js_env_t *env, js_value_t *exports) {
+bare_performance_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
 #define V(name, fn) \
