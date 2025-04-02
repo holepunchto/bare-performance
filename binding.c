@@ -13,7 +13,7 @@ bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   js_value_t *result;
-  err = js_create_int64(env, uv_metrics_idle_time(loop), &result);
+  err = js_create_bigint_uint64(env, uv_metrics_idle_time(loop), &result);
   assert(err == 0);
 
   return result;
