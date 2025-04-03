@@ -27,13 +27,13 @@
     "url": "https://github.com/holepunchto/bare-performance/issues"
   },
   "homepage": "https://github.com/holepunchto/bare-performance#readme",
+  "dependencies": {
+    "bare-hrtime": "^2.0.11"
+  },
   "devDependencies": {
     "brittle": "^3.13.1",
     "cmake-bare": "^1.5.4",
     "prettier": "^3.5.3",
     "prettier-config-standard": "^7.0.0"
-  },
-  "dependencies": {
-    "bare-hrtime": "^2.0.11"
   }
 }

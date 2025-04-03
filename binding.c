@@ -13,7 +13,7 @@ bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   js_value_t *result;
-  err = js_create_bigint_uint64(env, uv_metrics_idle_time(loop), &result);
+  err = js_create_int64(env, uv_metrics_idle_time(loop), &result);
   assert(err == 0);
 
   return result;
@@ -63,17 +63,12 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   err = uv_loop_configure(loop, UV_METRICS_IDLE_TIME);
   assert(err == 0);
 
-#define V(name, fn) \
-  { \
-    js_value_t *val; \
-    err = js_create_bigint_uint64(env, fn(), &val); \
-    assert(err == 0); \
-    err = js_set_named_property(env, exports, name, val); \
-    assert(err == 0); \
-  }
+  js_value_t *start;
+  err = js_create_bigint_uint64(env, uv_hrtime(), &start);
+  assert(err == 0);
 
-  V("BARE_START", uv_hrtime)
-#undef V
+  err = js_set_named_property(env, exports, "BARE_START", start);
+  assert(err == 0);
 
 #define V(name, fn) \
   { \
