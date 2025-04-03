@@ -27,6 +27,10 @@ test('now', (t) => {
   t.comment(performance.now())
 })
 
+test('timeOrigin', (t) => {
+  t.comment(performance.timeOrigin)
+})
+
 test('eventLoopUtilization', (t) => {
   t.plan(1)
 

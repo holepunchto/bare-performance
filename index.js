@@ -34,6 +34,8 @@ exports.metricsInfo = function metricsInfo() {
   return binding.metricsInfo()
 }
 
+exports.timeOrigin = binding.UNIX_TIME_ORIGIN
+
 // For Node.js compatibility
 exports.performance = exports
 
