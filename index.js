@@ -1,8 +1,7 @@
-const hrtime = require('bare-hrtime')
 const binding = require('./binding')
 
 exports.now = function now() {
-  return Number(hrtime.bigint() - binding.BARE_START) / 1e6
+  return binding.now(binding.TIME_ORIGIN)
 }
 
 exports.eventLoopUtilization = function eventLoopUtilization(
@@ -28,7 +27,7 @@ exports.eventLoopUtilization = function eventLoopUtilization(
 }
 
 exports.idleTime = function idleTime() {
-  return binding.idleTime() / 1e6
+  return binding.idleTime()
 }
 
 exports.metricsInfo = function metricsInfo() {
