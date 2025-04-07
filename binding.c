@@ -16,12 +16,12 @@ bare_performance_now(js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  uint64_t origin;
-  err = js_get_value_bigint_uint64(env, argv[0], &origin, NULL);
+  double origin;
+  err = js_get_value_double(env, argv[0], &origin);
   assert(err == 0);
 
   js_value_t *result;
-  err = js_create_double(env, (uv_hrtime() - origin) / 1e6, &result);
+  err = js_create_double(env, (uv_hrtime() / 1e6) - origin, &result);
   assert(err == 0);
 
   return result;
@@ -87,20 +87,10 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   assert(err == 0);
 
   js_value_t *time_origin;
-  err = js_create_bigint_uint64(env, uv_hrtime(), &time_origin);
+  err = js_create_double(env, uv_hrtime() / 1e6, &time_origin);
   assert(err == 0);
 
   err = js_set_named_property(env, exports, "TIME_ORIGIN", time_origin);
-  assert(err == 0);
-
-  uv_timeval64_t tv;
-  err = uv_gettimeofday(&tv);
-  assert(err == 0);
-
-  js_value_t *unix_time_origin;
-  err = js_create_double(env, (1e6 * tv.tv_sec + tv.tv_usec) / 1e3, &unix_time_origin);
-
-  err = js_set_named_property(env, exports, "UNIX_TIME_ORIGIN", unix_time_origin);
   assert(err == 0);
 
 #define V(name, fn) \
