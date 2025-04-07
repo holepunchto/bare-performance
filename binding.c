@@ -5,6 +5,29 @@
 #include <uv.h>
 
 static js_value_t *
+bare_performance_now(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  double origin;
+  err = js_get_value_double(env, argv[0], &origin);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_double(env, (uv_hrtime() / 1e6) - origin, &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
 bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   int err;
 
@@ -13,7 +36,7 @@ bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   js_value_t *result;
-  err = js_create_int64(env, uv_metrics_idle_time(loop), &result);
+  err = js_create_double(env, uv_metrics_idle_time(loop) / 1e6, &result);
   assert(err == 0);
 
   return result;
@@ -63,6 +86,13 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   err = uv_loop_configure(loop, UV_METRICS_IDLE_TIME);
   assert(err == 0);
 
+  js_value_t *time_origin;
+  err = js_create_double(env, uv_hrtime() / 1e6, &time_origin);
+  assert(err == 0);
+
+  err = js_set_named_property(env, exports, "TIME_ORIGIN", time_origin);
+  assert(err == 0);
+
 #define V(name, fn) \
   { \
     js_value_t *val; \
@@ -72,6 +102,7 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
     assert(err == 0); \
   }
 
+  V("now", bare_performance_now)
   V("idleTime", bare_performance_idle_time)
   V("metricsInfo", bare_performance_metrics_info)
 #undef V
