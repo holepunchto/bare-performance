@@ -6,7 +6,7 @@ Performance monitoring for Bare.
 npm i bare-performance
 ```
 
-## Documentation
+## API
 
 Supported APIs:
 
