@@ -4,13 +4,17 @@
   "description": "Performance monitoring for Bare",
   "exports": {
     "./package": "./package.json",
-    ".": "./index.js"
+    ".": "./index.js",
+    "./global": {
+      "default": "./global.js"
+    }
   },
   "files": [
     "index.js",
     "binding.c",
     "binding.js",
     "CMakeLists.txt",
+    "global.js",
     "prebuilds"
   ],
   "addon": true,
