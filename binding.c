@@ -8,23 +8,16 @@ static js_value_t *
 bare_performance_now(js_env_t *env, js_callback_info_t *info) {
   int err;
 
-  size_t argc = 1;
-  js_value_t *argv[1];
-
-  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
-  assert(err == 0);
-
-  assert(argc == 1);
-
-  double origin;
-  err = js_get_value_double(env, argv[0], &origin);
-  assert(err == 0);
-
   js_value_t *result;
-  err = js_create_double(env, (uv_hrtime() / 1e6) - origin, &result);
+  err = js_create_double(env, uv_hrtime() / 1e6, &result);
   assert(err == 0);
 
   return result;
+}
+
+static double
+bare_performance_now_typed(js_value_t *receiver, js_typed_callback_info_t *info) {
+  return uv_hrtime() / 1e6;
 }
 
 static js_value_t *
@@ -40,6 +33,21 @@ bare_performance_idle_time(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   return result;
+}
+
+static double
+bare_performance_idle_time_typed(js_value_t *receiver, js_typed_callback_info_t *info) {
+  int err;
+
+  js_env_t *env;
+  err = js_get_typed_callback_info(info, &env, NULL);
+  assert(err == 0);
+
+  uv_loop_t *loop;
+  err = js_get_env_loop(env, &loop);
+  assert(err == 0);
+
+  return uv_metrics_idle_time(loop) / 1e6;
 }
 
 static js_value_t *
@@ -93,18 +101,49 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   err = js_set_named_property(env, exports, "TIME_ORIGIN", time_origin);
   assert(err == 0);
 
-#define V(name, fn) \
+#define V(name, untyped, signature, typed) \
   { \
     js_value_t *val; \
-    err = js_create_function(env, name, -1, fn, NULL, &val); \
-    assert(err == 0); \
+    if (signature) { \
+      err = js_create_typed_function(env, name, -1, untyped, signature, typed, NULL, &val); \
+      assert(err == 0); \
+    } else { \
+      err = js_create_function(env, name, -1, untyped, NULL, &val); \
+      assert(err == 0); \
+    } \
     err = js_set_named_property(env, exports, name, val); \
     assert(err == 0); \
   }
 
-  V("now", bare_performance_now)
-  V("idleTime", bare_performance_idle_time)
-  V("metricsInfo", bare_performance_metrics_info)
+  V(
+    "now",
+    bare_performance_now,
+    &((js_callback_signature_t) {
+      .version = 0,
+      .result = js_float64,
+      .args_len = 1,
+      .args = (int[]) {
+        js_object,
+      },
+    }),
+    bare_performance_now_typed
+  );
+
+  V(
+    "idleTime",
+    bare_performance_idle_time,
+    &((js_callback_signature_t) {
+      .version = 0,
+      .result = js_float64,
+      .args_len = 1,
+      .args = (int[]) {
+        js_object,
+      },
+    }),
+    bare_performance_idle_time_typed
+  );
+
+  V("metricsInfo", bare_performance_metrics_info, NULL, NULL);
 #undef V
 
   return exports;
