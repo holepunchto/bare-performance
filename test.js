@@ -15,8 +15,8 @@ test('idleTime', (t) => {
 
       t.comment('second idle: ', secondIdle)
       t.ok(secondIdle > firstIdle, 'second idle > first idle')
-    })
-  }, 5)
+    }, 10)
+  }, 10)
 })
 
 test('metricsInfo', (t) => {
