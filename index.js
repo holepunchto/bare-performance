@@ -1,7 +1,9 @@
 const binding = require('./binding')
 
+const { TIME_ORIGIN } = binding
+
 exports.now = function now() {
-  return binding.now(binding.TIME_ORIGIN)
+  return binding.now() - TIME_ORIGIN
 }
 
 exports.eventLoopUtilization = function eventLoopUtilization(
@@ -34,7 +36,7 @@ exports.metricsInfo = function metricsInfo() {
   return binding.metricsInfo()
 }
 
-exports.timeOrigin = binding.TIME_ORIGIN
+exports.timeOrigin = TIME_ORIGIN
 
 // For Node.js compatibility
 exports.performance = exports
