@@ -5,9 +5,7 @@
   "exports": {
     "./package": "./package.json",
     ".": "./index.js",
-    "./global": {
-      "default": "./global.js"
-    }
+    "./global": "./global.js"
   },
   "files": [
     "index.js",
