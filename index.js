@@ -63,7 +63,7 @@ const globalPendingObservers = new Set()
 let globalBuffer = []
 let pending = false
 
-const PerformanceEntry = class PerformanceEntry {
+class PerformanceEntry {
   constructor(name, type, start, duration) {
     this._name = name
     this._type = type
@@ -142,7 +142,7 @@ class PerformanceObserverEntryList {
 
 exports.PerformanceObserverEntryList = PerformanceObserverEntryList
 
-exports.PerformanceObserver = class PerformanceObserver {
+class PerformanceObserver {
   constructor(cb) {
     this._entryTypes = new Set()
     this._type = observerType.UNDEFINED
@@ -218,6 +218,8 @@ exports.PerformanceObserver = class PerformanceObserver {
     this._type = observerType.UNDEFINED
   }
 }
+
+exports.PerformanceObserver = PerformanceObserver
 
 exports.mark = function mark(name, opts) {
   const mark = new PerformanceMark(name, opts)
