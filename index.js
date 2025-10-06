@@ -106,6 +106,22 @@ class PerformanceMark extends PerformanceEntry {
 
 exports.PerformanceMark = PerformanceMark
 
+class PerformanceMeasure extends PerformanceEntry {
+  constructor(name, startTime, duration, opts = {}) {
+    const { detail = null } = opts
+
+    super(name, 'measure', startTime, duration)
+
+    this._detail = detail
+  }
+
+  get detail() {
+    return this._detail
+  }
+}
+
+exports.PerformanceMeasure = PerformanceMeasure
+
 class PerformanceObserverEntryList {
   constructor(entryList) {
     this._list = entryList
@@ -135,7 +151,7 @@ exports.PerformanceObserver = class PerformanceObserver {
   }
 
   static get supportedEntryTypes() {
-    return ['mark']
+    return ['mark', 'measure']
   }
 
   observe(opts = {}) {
@@ -205,16 +221,86 @@ exports.PerformanceObserver = class PerformanceObserver {
 
 exports.mark = function mark(name, opts) {
   const mark = new PerformanceMark(name, opts)
+
   processEntry(mark)
+
   globalBuffer.push(mark)
+
   return mark
 }
 
 exports.clearMarks = function clearMarks(name) {
   if (name) {
-    globalBuffer = globalBuffer.filter((entry) => entry.name !== name)
+    globalBuffer = globalBuffer.filter(
+      (entry) => entry.name !== name && entry.entryType !== 'mark'
+    )
   } else {
-    globalBuffer = []
+    globalBuffer = globalBuffer.filter((entry) => entry.entryType !== 'mark')
+  }
+}
+
+exports.measure = function measure(name, start, end) {
+  let opts = {}
+
+  if (
+    typeof start === 'object' &&
+    start !== null &&
+    Object.keys(start).length > 0
+  ) {
+    opts = start
+
+    if (!opts.start && !opts.end) {
+      throw new TypeError('opts.start or opts.end must be specified')
+    }
+
+    if (opts.name && opts.end && opts.duration) {
+      throw new TypeError(
+        'One of opts.name, opts.end or opts.duration must not be specified'
+      )
+    }
+
+    start = opts.start
+    end = opts.end
+  }
+
+  let endTime
+
+  if (end) {
+    endTime = toTimestamp(end)
+  } else if (start && opts.duration) {
+    endTime = toTimestamp(start) + toTimestamp(duration)
+  } else {
+    endTime = exports.now()
+  }
+
+  let startTime
+
+  if (start) {
+    startTime = toTimestamp(start)
+  } else if (end && opts.duration) {
+    startTime = toTimestamp(end) - toTimestamp(duration)
+  } else {
+    startTime = 0
+  }
+
+  const duration = endTime - startTime
+
+  const measure = new PerformanceMeasure(name, startTime, duration, opts)
+
+  processEntry(measure)
+
+  globalBuffer.push(measure)
+
+  return measure
+}
+
+exports.clearMeasures = function clearMeasures(name) {
+  if (name) {
+    globalBuffer = globalBuffer.filter(
+      (entry) => entry.name !== name && entry.entryType !== 'measure'
+    )
+  } else {
+    globalBuffer = globalBuffer.filter((entry) => entry.entryType !== 'measure')
   }
 }
 
@@ -260,4 +346,21 @@ function processPendingObservers() {
       )
     }
   })
+}
+
+// https://w3c.github.io/user-timing/#convert-a-mark-to-a-timestamp
+function toTimestamp(mark) {
+  if (typeof mark === 'string') {
+    const performanceMark = globalBuffer.findLast(
+      (entry) => entry.name === mark && entry.entryType === 'mark'
+    )
+
+    if (performanceMark === undefined) {
+      throw new SyntaxError(`Mark ${mark} not found`)
+    }
+
+    return performanceMark.startTime
+  } else if (typeof mark === 'number') {
+    return mark
+  }
 }

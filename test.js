@@ -119,16 +119,53 @@ test('observe - buffered option', (t) => {
   obs.observe({ type: 'mark', buffered: true })
 })
 
-test('clearMarks', (t) => {
-  t.plan(4)
+test('measure', (t) => {
+  t.plan(3)
 
-  performance.mark('test')
+  performance.mark('start')
 
-  t.is(performance.getEntries().length, 1)
-  t.is(performance.getEntriesByName('test').length, 1)
+  setTimeout(() => {
+    performance.mark('end')
+
+    const measure = performance.measure('my-measure', 'start', 'end')
+
+    t.is(measure.name, 'my-measure')
+    t.is(measure.entryType, 'measure')
+    t.ok(measure.duration > 95 && measure.duration < 115)
+
+    performance.clearMarks()
+    performance.clearMeasures()
+  }, 100)
+})
+
+test('measure - options object', (t) => {
+  t.plan(1)
+
+  performance.mark('my-mark')
+  const measure = performance.measure('my-measure', {
+    start: 'my-mark',
+    detail: 42
+  })
+
+  t.is(measure.detail, 42)
+
+  performance.clearMarks()
+  performance.clearMeasures()
+})
+
+test('clearMarks + clear Measures', (t) => {
+  t.plan(5)
+
+  performance.mark('my-test')
+  performance.measure('my-measure', 'my-test')
+
+  t.is(performance.getEntries().length, 2)
+  t.is(performance.getEntriesByName('my-test').length, 1)
   t.is(performance.getEntriesByType('mark').length, 1)
+  t.is(performance.getEntriesByType('measure').length, 1)
 
-  performance.clearMarks('test')
+  performance.clearMarks()
+  performance.clearMeasures()
 
-  t.is(performance.getEntriesByType('mark').length, 0)
+  t.is(performance.getEntries().length, 0)
 })
