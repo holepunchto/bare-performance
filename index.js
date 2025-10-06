@@ -90,7 +90,7 @@ const PerformanceEntry = class PerformanceEntry {
 
 exports.PerformanceEntry = PerformanceEntry
 
-const PerformanceMark = class PerformanceMark extends PerformanceEntry {
+class PerformanceMark extends PerformanceEntry {
   constructor(name, opts = {}) {
     const { startTime = exports.now(), detail = null } = opts
 
@@ -106,7 +106,7 @@ const PerformanceMark = class PerformanceMark extends PerformanceEntry {
 
 exports.PerformanceMark = PerformanceMark
 
-const PerformanceObserverEntryList = class PerformanceObserverEntryList {
+class PerformanceObserverEntryList {
   constructor(entryList) {
     this._list = entryList
   }
