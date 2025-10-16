@@ -1,6 +1,6 @@
 {
   "name": "bare-performance",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Performance monitoring for Bare",
   "exports": {
     "./package": "./package.json",
