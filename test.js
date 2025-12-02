@@ -169,3 +169,12 @@ test('clearMarks + clear Measures', (t) => {
 
   t.is(performance.getEntries().length, 0)
 })
+
+test('createHistogram', (t) => {
+  const histogram = performance.createHistogram()
+
+  t.is(histogram.min, 9223372036854776000, 'min')
+  t.is(histogram.max, 0, 'max')
+  t.ok(Number.isNaN(histogram.mean))
+  t.is(histogram.count, 0)
+})

@@ -366,3 +366,35 @@ function toTimestamp(mark) {
     return mark
   }
 }
+
+class Histogram {
+  constructor(opts = {}) {
+    const { lowest = 1, hightest = Number.MAX_SAFE_INTEGER, figures = 3 } = opts
+
+    this._handle = binding.histogramInit(this, lowest, hightest, figures)
+
+    this._count = 0
+  }
+
+  get max() {
+    return binding.histogramMax(this._handle)
+  }
+
+  get min() {
+    return binding.histogramMin(this._handle)
+  }
+
+  get mean() {
+    return this._count === 0 ? NaN : binding.histogramMean(this._handle)
+  }
+
+  get count() {
+    return this._count
+  }
+}
+
+class RecordableHistogram extends Histogram {}
+
+exports.createHistogram = function createHistogram(opts) {
+  return new RecordableHistogram(opts)
+}
