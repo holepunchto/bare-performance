@@ -5,6 +5,7 @@ find_package(cmake-fetch REQUIRED PATHS node_modules/cmake-fetch)
 
 project(bare_performance C)
 
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(HDR_LOG_REQUIRED DISABLED)
 set(HDR_HISTOGRAM_BUILD_PROGRAMS OFF)
 
