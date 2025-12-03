@@ -170,7 +170,7 @@ test('clearMarks + clear Measures', (t) => {
   t.is(performance.getEntries().length, 0)
 })
 
-test.solo('createHistogram - basic', (t) => {
+test('createHistogram - basic', (t) => {
   const histogram = performance.createHistogram({ highest: 10, figures: 1 })
 
   t.is(histogram.min, 9223372036854776000)
@@ -218,7 +218,7 @@ test.solo('createHistogram - basic', (t) => {
   t.is(histogram.percentiles.size, 1)
 })
 
-test.solo('createHistogram - add', (t) => {
+test('createHistogram - add', (t) => {
   const h1 = performance.createHistogram()
   const h2 = performance.createHistogram()
 
