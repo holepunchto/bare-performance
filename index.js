@@ -369,11 +369,12 @@ function toTimestamp(mark) {
 
 class Histogram {
   constructor(opts = {}) {
-    const { lowest = 1, hightest = Number.MAX_SAFE_INTEGER, figures = 3 } = opts
+    const { lowest = 1, highest = Number.MAX_SAFE_INTEGER, figures = 3 } = opts
 
-    this._handle = binding.histogramInit(this, lowest, hightest, figures)
+    this._handle = binding.histogramInit(this, lowest, highest, figures)
 
     this._count = 0
+    this._exceeds = 0
   }
 
   get max() {
@@ -385,15 +386,50 @@ class Histogram {
   }
 
   get mean() {
-    return this._count === 0 ? NaN : binding.histogramMean(this._handle)
+    return binding.histogramMean(this._handle)
+  }
+
+  get percentiles() {
+    return new Map(binding.histogramPercentiles(this._handle))
+  }
+
+  get stddev() {
+    return binding.histogramStddev(this._handle)
   }
 
   get count() {
     return this._count
   }
+
+  get exceeds() {
+    return this._exceeds
+  }
+
+  percentile(percentile) {
+    return binding.histogramPercentile(this._handle, percentile)
+  }
+
+  reset() {
+    this._count = 0
+    this._exceeds = 0
+
+    binding.histogramReset(this._handle)
+  }
 }
 
-class RecordableHistogram extends Histogram {}
+class RecordableHistogram extends Histogram {
+  add(other) {
+    this._count += other._count
+    this._exceeds += other._exceeds
+
+    binding.histogramAdd(this._handle, other._handle)
+  }
+
+  record(value) {
+    if (binding.histogramRecord(this._handle, value)) this._count++
+    else this._exceeds++
+  }
+}
 
 exports.createHistogram = function createHistogram(opts) {
   return new RecordableHistogram(opts)

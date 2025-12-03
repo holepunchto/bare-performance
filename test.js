@@ -170,11 +170,70 @@ test('clearMarks + clear Measures', (t) => {
   t.is(performance.getEntries().length, 0)
 })
 
-test('createHistogram', (t) => {
-  const histogram = performance.createHistogram()
+test.solo('createHistogram - basic', (t) => {
+  const histogram = performance.createHistogram({ highest: 10, figures: 1 })
 
-  t.is(histogram.min, 9223372036854776000, 'min')
-  t.is(histogram.max, 0, 'max')
+  t.is(histogram.min, 9223372036854776000)
+  t.is(histogram.max, 0)
   t.ok(Number.isNaN(histogram.mean))
   t.is(histogram.count, 0)
+  t.is(histogram.exceeds, 0)
+  t.ok(histogram.percentiles instanceof Map)
+  t.is(histogram.percentiles.size, 1)
+  t.is(histogram.percentile(100), 0)
+
+  histogram.record(1)
+
+  t.is(histogram.min, 1)
+  t.is(histogram.max, 1)
+  t.is(histogram.mean, 1)
+  t.is(histogram.count, 1)
+  t.is(histogram.stddev, 0)
+  t.is(histogram.percentiles.size, 2)
+  t.is(histogram.percentile(100), 1)
+
+  histogram.record(5)
+
+  t.is(histogram.min, 1)
+  t.is(histogram.max, 5)
+  t.is(histogram.mean, 3)
+  t.is(histogram.count, 2)
+  t.is(histogram.stddev, 2)
+  t.is(histogram.percentiles.size, 4)
+  t.is(histogram.percentile(75), 5)
+
+  histogram.record(50)
+
+  t.is(histogram.exceeds, 1)
+  t.is(histogram.count, 2)
+  t.is(histogram.max, 5)
+
+  histogram.reset()
+
+  t.is(histogram.min, 9223372036854776000)
+  t.is(histogram.max, 0)
+  t.ok(Number.isNaN(histogram.mean))
+  t.is(histogram.count, 0)
+  t.is(histogram.exceeds, 0)
+  t.is(histogram.percentiles.size, 1)
+})
+
+test.solo('createHistogram - add', (t) => {
+  const h1 = performance.createHistogram()
+  const h2 = performance.createHistogram()
+
+  h1.record(1)
+  h1.record(2)
+
+  h2.record(3)
+  h2.record(4)
+
+  h1.add(h2)
+
+  t.is(h1.count, 4)
+  t.is(h1.min, 1)
+  t.is(h1.max, 4)
+  t.is(h1.mean, 2.5)
+
+  t.is(h2.count, 2)
 })
