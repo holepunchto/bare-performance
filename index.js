@@ -8,10 +8,7 @@ exports.now = function now() {
   return binding.now() - TIME_ORIGIN
 }
 
-exports.eventLoopUtilization = function eventLoopUtilization(
-  prevUtil,
-  secUtil
-) {
+exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
   if (secUtil) {
     const idle = prevUtil.idle - secUtil.idle
     const active = prevUtil.active - secUtil.active
@@ -163,9 +160,7 @@ class PerformanceObserver {
       (this._type === observerType.MULTIPLE && opts.type) ||
       (this._type === observerType.SINGLE && opts.entryTypes)
     ) {
-      throw new InvalidModificationError(
-        'Cannot change the PerformanceObserver type'
-      )
+      throw new InvalidModificationError('Cannot change the PerformanceObserver type')
     }
 
     if (this._type === observerType.UNDEFINED) {
@@ -185,9 +180,7 @@ class PerformanceObserver {
         this._entryTypes.add(opts.type)
 
         if (opts.buffered === true) {
-          const bufferedEntries = globalBuffer.filter(
-            (entry) => entry.entryType === opts.type
-          )
+          const bufferedEntries = globalBuffer.filter((entry) => entry.entryType === opts.type)
 
           if (bufferedEntries.length > 0) {
             this._buffer.push(...bufferedEntries)
@@ -233,9 +226,7 @@ exports.mark = function mark(name, opts) {
 
 exports.clearMarks = function clearMarks(name) {
   if (name) {
-    globalBuffer = globalBuffer.filter(
-      (entry) => entry.name !== name && entry.entryType !== 'mark'
-    )
+    globalBuffer = globalBuffer.filter((entry) => entry.name !== name && entry.entryType !== 'mark')
   } else {
     globalBuffer = globalBuffer.filter((entry) => entry.entryType !== 'mark')
   }
@@ -244,11 +235,7 @@ exports.clearMarks = function clearMarks(name) {
 exports.measure = function measure(name, start, end) {
   let opts = {}
 
-  if (
-    typeof start === 'object' &&
-    start !== null &&
-    Object.keys(start).length > 0
-  ) {
+  if (typeof start === 'object' && start !== null && Object.keys(start).length > 0) {
     opts = start
 
     if (!opts.start && !opts.end) {
@@ -256,9 +243,7 @@ exports.measure = function measure(name, start, end) {
     }
 
     if (opts.name && opts.end && opts.duration) {
-      throw new TypeError(
-        'One of opts.name, opts.end or opts.duration must not be specified'
-      )
+      throw new TypeError('One of opts.name, opts.end or opts.duration must not be specified')
     }
 
     start = opts.start
@@ -342,10 +327,7 @@ function processPendingObservers() {
     globalPendingObservers.clear()
 
     for (const observer of observers) {
-      observer._cb(
-        new exports.PerformanceObserverEntryList(observer.takeRecords()),
-        observer
-      )
+      observer._cb(new exports.PerformanceObserverEntryList(observer.takeRecords()), observer)
     }
   })
 }
