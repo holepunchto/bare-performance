@@ -8,10 +8,7 @@ exports.now = function now() {
   return binding.now() - TIME_ORIGIN
 }
 
-exports.eventLoopUtilization = function eventLoopUtilization(
-  prevUtil,
-  secUtil
-) {
+exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
   if (secUtil) {
     const idle = prevUtil.idle - secUtil.idle
     const active = prevUtil.active - secUtil.active
@@ -163,9 +160,7 @@ class PerformanceObserver {
       (this._type === observerType.MULTIPLE && opts.type) ||
       (this._type === observerType.SINGLE && opts.entryTypes)
     ) {
-      throw new InvalidModificationError(
-        'Cannot change the PerformanceObserver type'
-      )
+      throw new InvalidModificationError('Cannot change the PerformanceObserver type')
     }
 
     if (this._type === observerType.UNDEFINED) {
@@ -185,9 +180,7 @@ class PerformanceObserver {
         this._entryTypes.add(opts.type)
 
         if (opts.buffered === true) {
-          const bufferedEntries = globalBuffer.filter(
-            (entry) => entry.entryType === opts.type
-          )
+          const bufferedEntries = globalBuffer.filter((entry) => entry.entryType === opts.type)
 
           if (bufferedEntries.length > 0) {
             this._buffer.push(...bufferedEntries)
@@ -233,9 +226,7 @@ exports.mark = function mark(name, opts) {
 
 exports.clearMarks = function clearMarks(name) {
   if (name) {
-    globalBuffer = globalBuffer.filter(
-      (entry) => entry.name !== name && entry.entryType !== 'mark'
-    )
+    globalBuffer = globalBuffer.filter((entry) => entry.name !== name && entry.entryType !== 'mark')
   } else {
     globalBuffer = globalBuffer.filter((entry) => entry.entryType !== 'mark')
   }
@@ -244,11 +235,7 @@ exports.clearMarks = function clearMarks(name) {
 exports.measure = function measure(name, start, end) {
   let opts = {}
 
-  if (
-    typeof start === 'object' &&
-    start !== null &&
-    Object.keys(start).length > 0
-  ) {
+  if (typeof start === 'object' && start !== null && Object.keys(start).length > 0) {
     opts = start
 
     if (!opts.start && !opts.end) {
@@ -256,9 +243,7 @@ exports.measure = function measure(name, start, end) {
     }
 
     if (opts.name && opts.end && opts.duration) {
-      throw new TypeError(
-        'One of opts.name, opts.end or opts.duration must not be specified'
-      )
+      throw new TypeError('One of opts.name, opts.end or opts.duration must not be specified')
     }
 
     start = opts.start
@@ -342,10 +327,7 @@ function processPendingObservers() {
     globalPendingObservers.clear()
 
     for (const observer of observers) {
-      observer._cb(
-        new exports.PerformanceObserverEntryList(observer.takeRecords()),
-        observer
-      )
+      observer._cb(new exports.PerformanceObserverEntryList(observer.takeRecords()), observer)
     }
   })
 }
@@ -365,4 +347,72 @@ function toTimestamp(mark) {
   } else if (typeof mark === 'number') {
     return mark
   }
+}
+
+class Histogram {
+  constructor(opts = {}) {
+    const { lowest = 1, highest = Number.MAX_SAFE_INTEGER, figures = 3 } = opts
+
+    this._handle = binding.histogramInit(this, lowest, highest, figures)
+
+    this._count = 0
+    this._exceeds = 0
+  }
+
+  get max() {
+    return binding.histogramMax(this._handle)
+  }
+
+  get min() {
+    return binding.histogramMin(this._handle)
+  }
+
+  get mean() {
+    return binding.histogramMean(this._handle)
+  }
+
+  get percentiles() {
+    return new Map(binding.histogramPercentiles(this._handle))
+  }
+
+  get stddev() {
+    return binding.histogramStddev(this._handle)
+  }
+
+  get count() {
+    return this._count
+  }
+
+  get exceeds() {
+    return this._exceeds
+  }
+
+  percentile(percentile) {
+    return binding.histogramPercentile(this._handle, percentile)
+  }
+
+  reset() {
+    this._count = 0
+    this._exceeds = 0
+
+    binding.histogramReset(this._handle)
+  }
+}
+
+class RecordableHistogram extends Histogram {
+  add(other) {
+    this._count += other._count
+    this._exceeds += other._exceeds
+
+    binding.histogramAdd(this._handle, other._handle)
+  }
+
+  record(value) {
+    if (binding.histogramRecord(this._handle, value)) this._count++
+    else this._exceeds++
+  }
+}
+
+exports.createHistogram = function createHistogram(opts) {
+  return new RecordableHistogram(opts)
 }

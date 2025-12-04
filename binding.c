@@ -1,8 +1,15 @@
 #include <assert.h>
 #include <bare.h>
+#include <hdr/hdr_histogram.h>
 #include <js.h>
 #include <stdlib.h>
 #include <uv.h>
+
+typedef struct {
+  js_ref_t *ctx;
+
+  struct hdr_histogram *histogram;
+} bare_performance_histogram_t;
 
 static js_value_t *
 bare_performance_now(js_env_t *env, js_callback_info_t *info) {
@@ -84,6 +91,287 @@ bare_performance_metrics_info(js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_performance_histogram_init(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 4;
+  js_value_t *argv[4];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 4);
+
+  js_value_t *handle;
+
+  bare_performance_histogram_t *histogram;
+  err = js_create_arraybuffer(env, sizeof(bare_performance_histogram_t), (void **) &histogram, &handle);
+
+  err = js_create_reference(env, argv[0], 1, &histogram->ctx);
+  assert(err == 0);
+
+  int64_t lowest;
+  err = js_get_value_int64(env, argv[1], &lowest);
+  assert(err == 0);
+
+  int64_t highest;
+  err = js_get_value_int64(env, argv[2], &highest);
+  assert(err == 0);
+
+  int64_t figures;
+  err = js_get_value_int64(env, argv[3], &figures);
+  assert(err == 0);
+
+  err = hdr_init(lowest, highest, figures, &histogram->histogram);
+  assert(err == 0);
+
+  return handle;
+}
+
+static js_value_t *
+bare_performance_histogram_percentiles(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  struct hdr_iter iter;
+  hdr_iter_percentile_init(&iter, histogram->histogram, 1.0);
+
+  js_value_t *result;
+  err = js_create_array(env, &result);
+  assert(err == 0);
+
+  uint32_t i = 0;
+
+  while (hdr_iter_next(&iter)) {
+    js_value_t *pair;
+    err = js_create_array_with_length(env, 2, &pair);
+    assert(err == 0);
+
+    js_value_t *key;
+    err = js_create_double(env, iter.specifics.percentiles.percentile, &key);
+    assert(err == 0);
+
+    err = js_set_element(env, pair, 0, key);
+    assert(err == 0);
+
+    js_value_t *value;
+    err = js_create_double(env, iter.value, &value);
+    assert(err == 0);
+
+    err = js_set_element(env, pair, 1, value);
+    assert(err == 0);
+
+    err = js_set_element(env, result, i++, pair);
+    assert(err == 0);
+  }
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_percentile(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 2);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  double percentile;
+  err = js_get_value_double(env, argv[1], &percentile);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_int64(env, hdr_value_at_percentile(histogram->histogram, percentile), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_min(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_int64(env, hdr_min(histogram->histogram), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_max(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_int64(env, hdr_max(histogram->histogram), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_mean(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_double(env, hdr_mean(histogram->histogram), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_stddev(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_double(env, hdr_stddev(histogram->histogram), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_record(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 2);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  int64_t value;
+  err = js_get_value_int64(env, argv[1], &value);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_get_boolean(env, hdr_record_value(histogram->histogram, value), &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_performance_histogram_add(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 2);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  bare_performance_histogram_t *from;
+  err = js_get_arraybuffer_info(env, argv[1], (void **) &from, NULL);
+  assert(err == 0);
+
+  hdr_add(histogram->histogram, from->histogram);
+
+  return NULL;
+}
+
+static js_value_t *
+bare_performance_histogram_reset(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_histogram_t *histogram;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &histogram, NULL);
+  assert(err == 0);
+
+  hdr_reset(histogram->histogram);
+
+  return NULL;
+}
+
+static js_value_t *
 bare_performance_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
@@ -144,6 +432,17 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   );
 
   V("metricsInfo", bare_performance_metrics_info, NULL, NULL);
+
+  V("histogramInit", bare_performance_histogram_init, NULL, NULL);
+  V("histogramPercentiles", bare_performance_histogram_percentiles, NULL, NULL);
+  V("histogramPercentile", bare_performance_histogram_percentile, NULL, NULL);
+  V("histogramMin", bare_performance_histogram_min, NULL, NULL);
+  V("histogramMax", bare_performance_histogram_max, NULL, NULL);
+  V("histogramMean", bare_performance_histogram_mean, NULL, NULL);
+  V("histogramStddev", bare_performance_histogram_stddev, NULL, NULL);
+  V("histogramRecord", bare_performance_histogram_record, NULL, NULL);
+  V("histogramAdd", bare_performance_histogram_add, NULL, NULL);
+  V("histogramReset", bare_performance_histogram_reset, NULL, NULL);
 #undef V
 
   return exports;
