@@ -351,16 +351,9 @@ function toTimestamp(mark) {
 
 class Histogram {
   constructor(opts = {}) {
-    const { lowest = 1, highest = Number.MAX_SAFE_INTEGER, figures = 3, resolution = 0 } = opts
+    const { lowest = 1, highest = Number.MAX_SAFE_INTEGER, figures = 3 } = opts
 
-    this._handle = binding.histogramInit(
-      this,
-      lowest,
-      highest,
-      figures,
-      resolution,
-      this._ontimertimeout || null
-    )
+    this._handle = binding.histogramInit(this, lowest, highest, figures)
 
     this._count = 0
     this._exceeds = 0
@@ -430,12 +423,13 @@ class IntervalHistogram extends Histogram {
 
     super({
       lowest: 1,
-      highest: 3_600_000_000_000, // One hour in nanoseconds
-      resolution
+      highest: 3_600_000_000_000 // One hour in nanoseconds
     })
 
     this._resolution = resolution
     this._enabled = false
+
+    this._timerId = -1
     this._timerStartTime = -1
   }
 
@@ -443,26 +437,28 @@ class IntervalHistogram extends Histogram {
     if (this._enabled === true) return false
 
     this._timerStartTime = binding.now()
-    binding.histogramTimerStart(this._handle)
+    this._timerId = setInterval(this._oninterval.bind(this), this._resolution)
 
     this._enabled = true
+
     return true
   }
 
   disable() {
     if (this._enabled === false) return false
 
-    binding.histogramTimerStop(this._handle)
+    clearInterval(this._timerId)
 
     this._enabled = false
+
     return true
   }
 
-  _ontimertimeout() {
+  _oninterval() {
     const now = binding.now()
-
     const actual = now - this._timerStartTime
     const expected = this._resolution * 1e6
+
     const hasDelay = actual > expected
 
     if (hasDelay) {
@@ -476,6 +472,6 @@ class IntervalHistogram extends Histogram {
   }
 }
 
-exports.monitorEventLoopDelay = function createHistogram(opts) {
+exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
 }
