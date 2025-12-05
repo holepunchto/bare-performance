@@ -5,7 +5,7 @@ const binding = require('./binding')
 const { TIME_ORIGIN } = binding
 
 exports.now = function now() {
-  return binding.now() - TIME_ORIGIN
+  return binding.now() / 1e6 - TIME_ORIGIN
 }
 
 exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
@@ -415,4 +415,67 @@ class RecordableHistogram extends Histogram {
 
 exports.createHistogram = function createHistogram(opts) {
   return new RecordableHistogram(opts)
+}
+
+class IntervalHistogram extends Histogram {
+  constructor(opts = {}) {
+    const { resolution = 10 } = opts
+
+    super({
+      lowest: 1,
+      highest: 3_600_000_000_000 // One hour in nanoseconds
+    })
+
+    this._resolution = resolution
+    this._enabled = false
+
+    this._timerId = -1
+    this._timerStartTime = -1
+  }
+
+  enable() {
+    if (this._enabled === true) return false
+
+    this._timerStartTime = binding.now()
+    this._timerId = setInterval(this._oninterval.bind(this), this._resolution)
+
+    this._enabled = true
+
+    return true
+  }
+
+  disable() {
+    if (this._enabled === false) return false
+
+    clearInterval(this._timerId)
+
+    this._enabled = false
+
+    return true
+  }
+
+  _oninterval() {
+    const now = binding.now()
+    const actual = now - this._timerStartTime
+    const expected = this._resolution * 1e6
+
+    const hasDelay = actual > expected
+
+    if (hasDelay) {
+      const delay = actual - expected
+
+      if (binding.histogramRecord(this._handle, delay)) this._count++
+      else this._exceeds++
+    }
+
+    this._timerStartTime = now
+  }
+
+  [Symbol.dispose]() {
+    this.disable()
+  }
+}
+
+exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
+  return new IntervalHistogram(opts)
 }

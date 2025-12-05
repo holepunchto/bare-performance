@@ -237,3 +237,21 @@ test('createHistogram - add', (t) => {
 
   t.is(h2.count, 2)
 })
+
+test('monitorEventLoopDelay', (t) => {
+  t.plan(6)
+
+  const histogram = performance.monitorEventLoopDelay()
+
+  t.is(histogram.count, 0)
+
+  t.is(histogram.enable(), true)
+  t.is(histogram.enable(), false)
+
+  setTimeout(() => {
+    t.is(histogram.disable(), true)
+    t.is(histogram.disable(), false)
+
+    t.ok(histogram.count > 0)
+  }, 100)
+})

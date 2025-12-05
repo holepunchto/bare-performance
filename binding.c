@@ -16,7 +16,7 @@ bare_performance_now(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   js_value_t *result;
-  err = js_create_double(env, uv_hrtime() / 1e6, &result);
+  err = js_create_double(env, uv_hrtime(), &result);
   assert(err == 0);
 
   return result;
@@ -24,7 +24,7 @@ bare_performance_now(js_env_t *env, js_callback_info_t *info) {
 
 static double
 bare_performance_now_typed(js_value_t *receiver, js_typed_callback_info_t *info) {
-  return uv_hrtime() / 1e6;
+  return uv_hrtime();
 }
 
 static js_value_t *
