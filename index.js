@@ -470,6 +470,10 @@ class IntervalHistogram extends Histogram {
 
     this._timerStartTime = now
   }
+
+  [Symbol.dispose]() {
+    this.disable()
+  }
 }
 
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
