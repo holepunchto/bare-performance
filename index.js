@@ -480,4 +480,3 @@ class IntervalHistogram extends Histogram {
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
 }
-Z
