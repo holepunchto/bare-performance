@@ -438,6 +438,7 @@ class IntervalHistogram extends Histogram {
 
     this._timerStartTime = binding.now()
     this._timerId = setInterval(this._oninterval.bind(this), this._resolution)
+    this._timerId.unref()
 
     this._enabled = true
 
@@ -479,3 +480,4 @@ class IntervalHistogram extends Histogram {
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
 }
+Z
