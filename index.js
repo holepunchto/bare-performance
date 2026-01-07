@@ -242,8 +242,8 @@ exports.measure = function measure(name, start, end) {
       throw new TypeError('opts.start or opts.end must be specified')
     }
 
-    if (opts.name && opts.end && opts.duration) {
-      throw new TypeError('One of opts.name, opts.end or opts.duration must not be specified')
+    if (opts.start && opts.end && opts.duration) {
+      throw new TypeError('One of opts.start, opts.end or opts.duration must not be specified')
     }
 
     start = opts.start
