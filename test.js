@@ -119,6 +119,34 @@ test('observe - buffered option', (t) => {
   obs.observe({ type: 'mark', buffered: true })
 })
 
+test('observe - error handling', (t) => {
+  t.plan(3)
+
+  {
+    const obs = new performance.PerformanceObserver(() => {})
+
+    t.exception.all(() => obs.observe({}), /TypeError/, 'no entry type specified')
+  }
+
+  {
+    const obs = new performance.PerformanceObserver(() => {})
+
+    t.exception(() => {
+      obs.observe({ type: 'mark' })
+      obs.observe({ entryTypes: ['mark'] })
+    }, /InvalidModificationError/)
+  }
+
+  {
+    const obs = new performance.PerformanceObserver(() => {})
+
+    t.exception(() => {
+      obs.observe({ entryTypes: ['mark'] })
+      obs.observe({ type: 'mark' })
+    }, /InvalidModificationError/)
+  }
+})
+
 test('measure', (t) => {
   t.plan(3)
 
@@ -151,6 +179,22 @@ test('measure - options object', (t) => {
 
   performance.clearMarks()
   performance.clearMeasures()
+})
+
+test('measure - error handling', (t) => {
+  t.plan(2)
+
+  t.exception.all(
+    () => performance.measure('foo', { detail: 0 }),
+    /TypeError/,
+    'no start or end specified'
+  )
+
+  t.exception.all(
+    () => performance.measure('foo', { start: 'foo', end: 'bar', duration: 42 }),
+    /TypeError/,
+    'start, duration and end specified'
+  )
 })
 
 test('clearMarks + clear Measures', (t) => {
