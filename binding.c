@@ -599,6 +599,26 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   V("disableGarbageCollectionTracking", bare_performance_disable_garbage_collection_tracking, NULL, NULL);
 #undef V
 
+  js_value_t *constants;
+  err = js_create_object(env, &constants);
+  assert(err == 0);
+
+  err = js_set_named_property(env, exports, "constants", constants);
+  assert(err == 0);
+
+#define V(name, n) \
+  { \
+    js_value_t *val; \
+    err = js_create_uint32(env, n, &val); \
+    assert(err == 0); \
+    err = js_set_named_property(env, constants, name, val); \
+    assert(err == 0); \
+  }
+
+  V("MARK_COMPACT", js_garbage_collection_type_mark_compact)
+  V("GENERATIONAL", js_garbage_collection_type_generational)
+#undef V
+
   return exports;
 }
 
