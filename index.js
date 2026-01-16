@@ -119,38 +119,38 @@ class PerformanceMeasure extends PerformanceEntry {
 
 exports.PerformanceMeasure = PerformanceMeasure
 
-class PerformanceGcEntry extends PerformanceEntry {
-  static _handle = null
-  static _observerCounter = 0
+class PerformanceNodeEntry extends PerformanceEntry {
+  static _gcHandle = null
+  static _gcObserverCounter = 0
 
-  static _incrementObserverCount() {
-    if (++PerformanceGcEntry._observerCounter === 1) {
-      PerformanceGcEntry._handle = binding.enableGarbageCollectionTracking(
+  static _incrementGcObserverCount() {
+    if (++PerformanceNodeEntry._gcObserverCounter === 1) {
+      PerformanceNodeEntry._gcHandle = binding.enableGarbageCollectionTracking(
         this,
-        PerformanceGcEntry._onNewEntry
+        PerformanceNodeEntry._onNewEntry
       )
     }
   }
 
-  static _decrementObserverCount() {
-    if (--PerformanceGcEntry._observerCounter === 0) {
-      binding.disableGarbageCollectionTracking(this._handle)
-      PerformanceGcEntry._handle = null
+  static _decrementGcObserverCount() {
+    if (--PerformanceNodeEntry._gcObserverCounter === 0) {
+      binding.disableGarbageCollectionTracking(this._gcHandle)
+      PerformanceNodeEntry._gcHandle = null
     }
   }
 
   static _onNewEntry(startTime, duration, kind) {
     startTime -= TIME_ORIGIN
 
-    const entry = new PerformanceGcEntry(startTime, duration, kind)
+    const entry = new PerformanceNodeEntry('gc', startTime, duration, kind)
 
     processEntry(entry)
 
     globalBuffer.push(entry)
   }
 
-  constructor(startTime, duration, kind) {
-    super('gc', 'gc', startTime, duration)
+  constructor(entryType, startTime, duration, kind) {
+    super(entryType, entryType, startTime, duration)
 
     this._detail = { kind }
   }
@@ -160,10 +160,7 @@ class PerformanceGcEntry extends PerformanceEntry {
   }
 }
 
-exports.PerformanceGcEntry = PerformanceGcEntry
-
-// For Node.js compatibility
-exports.PerformanceNodeEntry = PerformanceGcEntry
+exports.PerformanceNodeEntry = PerformanceNodeEntry
 
 class PerformanceObserverEntryList {
   constructor(entryList) {
@@ -241,7 +238,7 @@ class PerformanceObserver {
     if (this._entryTypes.size > 0) {
       globalObservers.add(this)
 
-      if (this._entryTypes.has('gc')) PerformanceGcEntry._incrementObserverCount()
+      if (this._entryTypes.has('gc')) PerformanceNodeEntry._incrementGcObserverCount()
     } else {
       this.disconnect()
     }
@@ -256,7 +253,7 @@ class PerformanceObserver {
   disconnect() {
     globalObservers.delete(this)
 
-    if (this._entryTypes.has('gc')) PerformanceGcEntry._decrementObserverCount()
+    if (this._entryTypes.has('gc')) PerformanceNodeEntry._decrementGcObserverCount()
     this._entryTypes.clear()
 
     this._type = observerType.UNDEFINED
@@ -530,4 +527,12 @@ class IntervalHistogram extends Histogram {
 
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
+}
+
+// For Node.js compatibility
+exports.constants = {
+  NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
+  NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
+  NODE_PERFORMANCE_GC_INCREMENTAL: -1,
+  NODE_PERFORMANCE_GC_WEAKCB: -1
 }

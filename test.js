@@ -321,3 +321,7 @@ test('monitorEventLoopDelay', (t) => {
     t.ok(histogram.count > 0)
   }, 100)
 })
+
+test('constants', (t) => {
+  t.ok(performance.constants)
+})
