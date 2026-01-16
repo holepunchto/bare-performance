@@ -147,6 +147,28 @@ test('observe - error handling', (t) => {
   }
 })
 
+test('observe - gc', (t) => {
+  // t.plan(5)
+
+  const obs = new performance.PerformanceObserver((list, observer) => {
+    /*
+    const entries = list.getEntries()
+
+    t.is(entries[0].name, 'gc')
+    t.is(entries[0].entryType, 'gc')
+    t.ok(entries[0].startTime > 0)
+    t.ok(entries[0].duration > 0)
+    t.ok(entries[0].detail.kind)
+
+    observer.disconnect()
+    */
+  })
+
+  obs.observe({ type: 'gc' })
+
+  t.pass()
+})
+
 test('measure', (t) => {
   t.plan(3)
 
