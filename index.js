@@ -119,6 +119,52 @@ class PerformanceMeasure extends PerformanceEntry {
 
 exports.PerformanceMeasure = PerformanceMeasure
 
+class PerformanceGcEntry extends PerformanceEntry {
+  static _handle = null
+  static _observerCounter = 0
+
+  static _incrementObserverCount() {
+    if (++PerformanceGcEntry._observerCounter === 1) {
+      PerformanceGcEntry._handle = binding.enableGarbageCollectionTracking(
+        this,
+        PerformanceGcEntry._onNewEntry
+      )
+    }
+  }
+
+  static _decrementObserverCount() {
+    if (--PerformanceGcEntry._observerCounter === 0) {
+      binding.disableGarbageCollectionTracking(this._handle)
+      PerformanceGcEntry._handle = null
+    }
+  }
+
+  static _onNewEntry(startTime, duration, kind) {
+    startTime -= TIME_ORIGIN
+
+    const entry = new PerformanceGcEntry(startTime, duration, kind)
+
+    processEntry(entry)
+
+    globalBuffer.push(entry)
+  }
+
+  constructor(startTime, duration, kind) {
+    super('gc', 'gc', startTime, duration)
+
+    this._detail = { kind }
+  }
+
+  get detail() {
+    return this._detail
+  }
+}
+
+exports.PerformanceGcEntry = PerformanceGcEntry
+
+// For Node.js compatibility
+exports.PerformanceNodeEntry = PerformanceGcEntry
+
 class PerformanceObserverEntryList {
   constructor(entryList) {
     this._list = entryList
@@ -148,7 +194,7 @@ class PerformanceObserver {
   }
 
   static get supportedEntryTypes() {
-    return ['mark', 'measure']
+    return ['mark', 'measure', 'gc']
   }
 
   observe(opts = {}) {
@@ -194,6 +240,8 @@ class PerformanceObserver {
 
     if (this._entryTypes.size > 0) {
       globalObservers.add(this)
+
+      if (this._entryTypes.has('gc')) PerformanceGcEntry._incrementObserverCount()
     } else {
       this.disconnect()
     }
@@ -207,7 +255,10 @@ class PerformanceObserver {
 
   disconnect() {
     globalObservers.delete(this)
+
+    if (this._entryTypes.has('gc')) PerformanceGcEntry._decrementObserverCount()
     this._entryTypes.clear()
+
     this._type = observerType.UNDEFINED
   }
 }
