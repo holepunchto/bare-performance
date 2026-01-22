@@ -119,6 +119,49 @@ class PerformanceMeasure extends PerformanceEntry {
 
 exports.PerformanceMeasure = PerformanceMeasure
 
+class PerformanceNodeEntry extends PerformanceEntry {
+  static _gcHandle = null
+  static _gcObserverCounter = 0
+
+  static _incrementGcObserverCount() {
+    if (++PerformanceNodeEntry._gcObserverCounter === 1) {
+      PerformanceNodeEntry._gcHandle = binding.enableGarbageCollectionTracking(
+        this,
+        PerformanceNodeEntry._onNewEntry
+      )
+    }
+  }
+
+  static _decrementGcObserverCount() {
+    if (--PerformanceNodeEntry._gcObserverCounter === 0) {
+      binding.disableGarbageCollectionTracking(this._gcHandle)
+      PerformanceNodeEntry._gcHandle = null
+    }
+  }
+
+  static _onNewEntry(startTime, duration, kind) {
+    startTime -= TIME_ORIGIN
+
+    const entry = new PerformanceNodeEntry('gc', startTime, duration, kind)
+
+    processEntry(entry)
+
+    globalBuffer.push(entry)
+  }
+
+  constructor(entryType, startTime, duration, kind) {
+    super(entryType, entryType, startTime, duration)
+
+    this._detail = { kind }
+  }
+
+  get detail() {
+    return this._detail
+  }
+}
+
+exports.PerformanceNodeEntry = PerformanceNodeEntry
+
 class PerformanceObserverEntryList {
   constructor(entryList) {
     this._list = entryList
@@ -148,7 +191,7 @@ class PerformanceObserver {
   }
 
   static get supportedEntryTypes() {
-    return ['mark', 'measure']
+    return ['mark', 'measure', 'gc']
   }
 
   observe(opts = {}) {
@@ -194,6 +237,8 @@ class PerformanceObserver {
 
     if (this._entryTypes.size > 0) {
       globalObservers.add(this)
+
+      if (this._entryTypes.has('gc')) PerformanceNodeEntry._incrementGcObserverCount()
     } else {
       this.disconnect()
     }
@@ -207,7 +252,10 @@ class PerformanceObserver {
 
   disconnect() {
     globalObservers.delete(this)
+
+    if (this._entryTypes.has('gc')) PerformanceNodeEntry._decrementGcObserverCount()
     this._entryTypes.clear()
+
     this._type = observerType.UNDEFINED
   }
 }
@@ -479,4 +527,12 @@ class IntervalHistogram extends Histogram {
 
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
+}
+
+// For Node.js compatibility
+exports.constants = {
+  NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
+  NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
+  NODE_PERFORMANCE_GC_INCREMENTAL: -1,
+  NODE_PERFORMANCE_GC_WEAKCB: -1
 }
