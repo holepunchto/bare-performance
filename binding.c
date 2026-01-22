@@ -20,12 +20,14 @@ typedef struct {
 } bare_performance_garbage_collection_entry_t;
 
 typedef struct {
-  js_garbage_collection_tracking_t garbage_collection_tracking;
+  js_garbage_collection_tracking_options_t options;
 
   struct {
     uint64_t mark_compact;
     uint64_t generational;
   } start_time_per_type;
+
+  js_garbage_collection_tracking_t *tracking;
 
   js_threadsafe_function_t *on_new_entry;
 
@@ -473,7 +475,7 @@ bare_performance_disable_garbage_collection_tracking(js_env_t *env, js_callback_
   err = js_get_arraybuffer_info(env, argv[0], (void **) &gc, NULL);
   assert(err == 0);
 
-  err = js_disable_garbage_collection_tracking(env, &gc->garbage_collection_tracking);
+  err = js_disable_garbage_collection_tracking(env, gc->tracking);
   assert(err == 0);
 
   err = js_release_threadsafe_function(gc->on_new_entry, js_threadsafe_function_release);
@@ -504,8 +506,13 @@ bare_performance_enable_garbage_collection_tracking(js_env_t *env, js_callback_i
   assert(err == 0);
 
   gc->env = env;
-  gc->garbage_collection_tracking.start_cb = bare_performance_garbage_collection_tracking__on_start;
-  gc->garbage_collection_tracking.end_cb = bare_performance_garbage_collection_tracking__on_end;
+
+  const js_garbage_collection_tracking_options_t options = {
+    .start = bare_performance_garbage_collection_tracking__on_start,
+    .end = bare_performance_garbage_collection_tracking__on_end,
+  };
+
+  gc->options = options;
 
   err = js_create_reference(env, argv[0], 1, &gc->ctx);
   assert(err == 0);
@@ -516,7 +523,7 @@ bare_performance_enable_garbage_collection_tracking(js_env_t *env, js_callback_i
   err = js_unref_threadsafe_function(env, gc->on_new_entry);
   assert(err == 0);
 
-  err = js_enable_garbage_collection_tracking(env, &gc->garbage_collection_tracking, (void *) gc);
+  err = js_enable_garbage_collection_tracking(env, &gc->options, (void *) gc, &gc->tracking);
   assert(err == 0);
 
   return handle;

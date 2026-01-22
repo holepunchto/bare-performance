@@ -67,8 +67,6 @@ exports.nodeTiming = new PerformanceNodeTiming()
 
 exports.PerformanceEntry = PerformanceEntry
 
-exports.PerformanceGcEntry = PerformanceGcEntry
-
 // For Node.js compatibility
 exports.PerformanceNodeEntry = PerformanceGcEntry
 

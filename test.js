@@ -148,10 +148,9 @@ test('observe - error handling', (t) => {
 })
 
 test('observe - gc', (t) => {
-  // t.plan(5)
+  t.plan(6)
 
   const obs = new performance.PerformanceObserver((list, observer) => {
-    /*
     const entries = list.getEntries()
 
     t.is(entries[0].name, 'gc')
@@ -160,13 +159,14 @@ test('observe - gc', (t) => {
     t.ok(entries[0].duration > 0)
     t.ok(entries[0].detail.kind)
 
+    t.ok(performance.getEntries().length === 0)
+
     observer.disconnect()
-    */
   })
 
   obs.observe({ type: 'gc' })
 
-  t.pass()
+  global.gc()
 })
 
 test('measure', (t) => {
