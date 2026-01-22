@@ -166,6 +166,8 @@ test('observe - gc', (t) => {
 
   obs.observe({ type: 'gc' })
 
+  // global.gc()
+
   t.pass()
 })
 
