@@ -11,6 +11,30 @@ typedef struct {
   struct hdr_histogram *histogram;
 } bare_performance_histogram_t;
 
+typedef struct {
+  js_ref_t *ctx;
+
+  js_garbage_collection_type_t kind;
+  uint64_t start_time;
+  uint64_t duration;
+} bare_performance_garbage_collection_entry_t;
+
+typedef struct {
+  js_garbage_collection_tracking_options_t options;
+
+  struct {
+    uint64_t mark_compact;
+    uint64_t generational;
+  } start_time_per_type;
+
+  js_garbage_collection_tracking_t *tracking;
+
+  js_threadsafe_function_t *on_new_entry;
+
+  js_env_t *env;
+  js_ref_t *ctx;
+} bare_performance_garbage_collection_tracking_t;
+
 static js_value_t *
 bare_performance_now(js_env_t *env, js_callback_info_t *info) {
   int err;
@@ -371,6 +395,140 @@ bare_performance_histogram_reset(js_env_t *env, js_callback_info_t *info) {
   return NULL;
 }
 
+static void
+bare_performance_garbage_collection_tracking__on_new_entry(js_env_t *env, js_value_t *on_new_entry, void *context, void *data) {
+  int err;
+
+  bare_performance_garbage_collection_entry_t *entry = (bare_performance_garbage_collection_entry_t *) data;
+
+  js_value_t *ctx;
+  err = js_get_reference_value(env, entry->ctx, &ctx);
+  assert(err == 0);
+
+  js_value_t *args[3];
+
+  err = js_create_double(env, entry->start_time / 1e6, &args[0]);
+  assert(err == 0);
+
+  err = js_create_double(env, entry->duration / 1e6, &args[1]);
+  assert(err == 0);
+
+  err = js_create_int32(env, entry->kind, &args[2]);
+  assert(err == 0);
+
+  free(entry);
+
+  err = js_call_function(env, ctx, on_new_entry, 3, args, NULL);
+  assert(err == 0);
+}
+
+static void
+bare_performance_garbage_collection_tracking__on_end(js_garbage_collection_type_t type, void *data) {
+  int err;
+
+  uint64_t current_timestamp = uv_hrtime();
+
+  bare_performance_garbage_collection_tracking_t *gc = (bare_performance_garbage_collection_tracking_t *) data;
+
+  uint64_t start_time;
+  if (type == js_garbage_collection_type_mark_compact) start_time = gc->start_time_per_type.mark_compact;
+  else start_time = gc->start_time_per_type.generational;
+
+  uint64_t duration = current_timestamp - start_time;
+
+  bare_performance_garbage_collection_entry_t *entry = malloc(sizeof(bare_performance_garbage_collection_entry_t));
+
+  entry->ctx = gc->ctx;
+  entry->start_time = start_time;
+  entry->duration = duration;
+  entry->kind = type;
+
+  err = js_call_threadsafe_function(gc->on_new_entry, entry, js_threadsafe_function_nonblocking);
+  assert(err == 0);
+}
+
+static void
+bare_performance_garbage_collection_tracking__on_start(js_garbage_collection_type_t type, void *data) {
+  int err;
+
+  uint64_t current_timestamp = uv_hrtime();
+
+  bare_performance_garbage_collection_tracking_t *gc = (bare_performance_garbage_collection_tracking_t *) data;
+
+  if (type == js_garbage_collection_type_mark_compact) gc->start_time_per_type.mark_compact = current_timestamp;
+  else gc->start_time_per_type.generational = current_timestamp;
+}
+
+static js_value_t *
+bare_performance_disable_garbage_collection_tracking(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_performance_garbage_collection_tracking_t *gc;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &gc, NULL);
+  assert(err == 0);
+
+  err = js_disable_garbage_collection_tracking(env, gc->tracking);
+  assert(err == 0);
+
+  err = js_release_threadsafe_function(gc->on_new_entry, js_threadsafe_function_release);
+  assert(err == 0);
+
+  err = js_delete_reference(env, gc->ctx);
+  assert(err == 0);
+
+  return NULL;
+}
+
+static js_value_t *
+bare_performance_enable_garbage_collection_tracking(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 2);
+
+  js_value_t *handle;
+
+  bare_performance_garbage_collection_tracking_t *gc;
+  err = js_create_arraybuffer(env, sizeof(bare_performance_garbage_collection_tracking_t), (void **) &gc, &handle);
+  assert(err == 0);
+
+  gc->env = env;
+
+  const js_garbage_collection_tracking_options_t options = {
+    .start = bare_performance_garbage_collection_tracking__on_start,
+    .end = bare_performance_garbage_collection_tracking__on_end,
+  };
+
+  gc->options = options;
+
+  err = js_create_reference(env, argv[0], 1, &gc->ctx);
+  assert(err == 0);
+
+  err = js_create_threadsafe_function(env, argv[1], 64, 1, NULL, NULL, NULL, bare_performance_garbage_collection_tracking__on_new_entry, &gc->on_new_entry);
+  assert(err == 0);
+
+  err = js_unref_threadsafe_function(env, gc->on_new_entry);
+  assert(err == 0);
+
+  err = js_enable_garbage_collection_tracking(env, &gc->options, (void *) gc, &gc->tracking);
+  assert(err == 0);
+
+  return handle;
+}
+
 static js_value_t *
 bare_performance_exports(js_env_t *env, js_value_t *exports) {
   int err;
@@ -443,6 +601,29 @@ bare_performance_exports(js_env_t *env, js_value_t *exports) {
   V("histogramRecord", bare_performance_histogram_record, NULL, NULL);
   V("histogramAdd", bare_performance_histogram_add, NULL, NULL);
   V("histogramReset", bare_performance_histogram_reset, NULL, NULL);
+
+  V("enableGarbageCollectionTracking", bare_performance_enable_garbage_collection_tracking, NULL, NULL);
+  V("disableGarbageCollectionTracking", bare_performance_disable_garbage_collection_tracking, NULL, NULL);
+#undef V
+
+  js_value_t *constants;
+  err = js_create_object(env, &constants);
+  assert(err == 0);
+
+  err = js_set_named_property(env, exports, "constants", constants);
+  assert(err == 0);
+
+#define V(name, n) \
+  { \
+    js_value_t *val; \
+    err = js_create_uint32(env, n, &val); \
+    assert(err == 0); \
+    err = js_set_named_property(env, constants, name, val); \
+    assert(err == 0); \
+  }
+
+  V("MARK_COMPACT", js_garbage_collection_type_mark_compact)
+  V("GENERATIONAL", js_garbage_collection_type_generational)
 #undef V
 
   return exports;

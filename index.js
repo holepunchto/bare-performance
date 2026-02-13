@@ -95,3 +95,11 @@ exports.createHistogram = function createHistogram(opts) {
 exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
   return new IntervalHistogram(opts)
 }
+
+// For Node.js compatibility
+exports.constants = {
+  NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
+  NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
+  NODE_PERFORMANCE_GC_INCREMENTAL: -1,
+  NODE_PERFORMANCE_GC_WEAKCB: -1
+}
