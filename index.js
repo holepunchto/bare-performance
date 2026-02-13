@@ -1,7 +1,6 @@
 const { now, timeOrigin } = require('./lib/hr-time')
 const {
   PerformanceEntry,
-  PerformanceGcEntry,
   PerformanceMark,
   PerformanceMeasure,
   PerformanceObserverEntryList,
@@ -66,9 +65,6 @@ class PerformanceNodeTiming {
 exports.nodeTiming = new PerformanceNodeTiming()
 
 exports.PerformanceEntry = PerformanceEntry
-
-// For Node.js compatibility
-exports.PerformanceNodeEntry = PerformanceGcEntry
 
 exports.PerformanceMark = PerformanceMark
 
