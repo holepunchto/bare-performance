@@ -30,6 +30,9 @@
     "url": "https://github.com/holepunchto/bare-performance/issues"
   },
   "homepage": "https://github.com/holepunchto/bare-performance#readme",
+  "engines": {
+    "bare": ">=1.27.0"
+  },
   "devDependencies": {
     "brittle": "^3.13.1",
     "cmake-bare": "^1.5.4",
