@@ -3,41 +3,111 @@ const {
   PerformanceEntry,
   PerformanceMark,
   PerformanceMeasure,
-  PerformanceObserverEntryList,
   PerformanceObserver,
-  mark,
+  PerformanceObserverEntryList,
+  PerformanceResourceTiming,
   clearMarks,
-  measure,
   clearMeasures,
+  clearResourceTimings,
   getEntries,
   getEntriesByName,
-  getEntriesByType
+  getEntriesByType,
+  mark,
+  markResourceTiming,
+  measure,
+  setResourceTimingBufferSize,
+  _registerEventHandler
 } = require('./lib/timing')
 const { RecordableHistogram, IntervalHistogram } = require('./lib/histogram')
+const { Event, EventTarget } = require('bare-events/web')
 const binding = require('./binding')
 
-exports.now = now
+class Performance extends EventTarget {
+  constructor() {
+    super()
 
-exports.timeOrigin = timeOrigin
-
-exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
-  if (secUtil) {
-    const idle = prevUtil.idle - secUtil.idle
-    const active = prevUtil.active - secUtil.active
-    return { idle, active, utilization: active / (idle + active) }
+    _registerEventHandler((eventName) => {
+      this.dispatchEvent(new Event(eventName))
+    })
   }
 
-  let idle = exports.idleTime()
-  if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
+  get timeOrigin() {
+    return timeOrigin
+  }
 
-  let active = exports.now() - idle
-  if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
+  // For Node.js compatibility
+  get nodeTiming() {
+    return new PerformanceNodeTiming()
+  }
 
-  idle = idle - prevUtil.idle
-  active = active - prevUtil.active
+  now() {
+    return now()
+  }
 
-  return { idle, active, utilization: active / (idle + active) }
+  getEntries() {
+    return getEntries()
+  }
+
+  getEntriesByName(name) {
+    return getEntriesByName(name)
+  }
+
+  getEntriesByType(type) {
+    return getEntriesByType(type)
+  }
+
+  mark(name, opts) {
+    return mark(name, opts)
+  }
+
+  markResourceTiming(
+    timingInfo,
+    requestedUrl,
+    initiatorType,
+    global,
+    cacheMode,
+    bodyInfo,
+    responseStatus,
+    deliveryType
+  ) {
+    return markResourceTiming(
+      timingInfo,
+      requestedUrl,
+      initiatorType,
+      global,
+      cacheMode,
+      bodyInfo,
+      responseStatus,
+      deliveryType
+    )
+  }
+
+  measure(name, start, end) {
+    return measure(name, start, end)
+  }
+
+  clearMarks(name) {
+    clearMarks(name)
+  }
+
+  clearMeasures(name) {
+    clearMeasures(name)
+  }
+
+  clearResourceTimings(name) {
+    clearResourceTimings(name)
+  }
+
+  setResourceTimingBufferSize(maxSize) {
+    setResourceTimingBufferSize(maxSize)
+  }
+
+  eventLoopUtilization(prevUtil, secUtil) {
+    return exports.eventLoopUtilization(prevUtil, secUtil)
+  }
 }
+
+exports.performance = new Performance()
 
 exports.idleTime = function idleTime() {
   return binding.idleTime()
@@ -46,9 +116,6 @@ exports.idleTime = function idleTime() {
 exports.metricsInfo = function metricsInfo() {
   return binding.metricsInfo()
 }
-
-// For Node.js compatibility
-exports.performance = exports
 
 // For Node.js compatibility
 class PerformanceNodeTiming {
@@ -61,32 +128,31 @@ class PerformanceNodeTiming {
   }
 }
 
-// For Node.js compatibility
-exports.nodeTiming = new PerformanceNodeTiming()
-
 exports.PerformanceEntry = PerformanceEntry
-
+exports.PerformanceResourceTiming = PerformanceResourceTiming
 exports.PerformanceMark = PerformanceMark
-
 exports.PerformanceMeasure = PerformanceMeasure
-
 exports.PerformanceObserverEntryList = PerformanceObserverEntryList
-
 exports.PerformanceObserver = PerformanceObserver
 
-exports.mark = mark
+exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
+  if (secUtil) {
+    const idle = prevUtil.idle - secUtil.idle
+    const active = prevUtil.active - secUtil.active
+    return { idle, active, utilization: active / (idle + active) }
+  }
 
-exports.clearMarks = clearMarks
+  let idle = exports.idleTime()
+  if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
 
-exports.measure = measure
+  let active = now() - idle
+  if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
 
-exports.clearMeasures = clearMeasures
+  idle = idle - prevUtil.idle
+  active = active - prevUtil.active
 
-exports.getEntries = getEntries
-
-exports.getEntriesByName = getEntriesByName
-
-exports.getEntriesByType = getEntriesByType
+  return { idle, active, utilization: active / (idle + active) }
+}
 
 exports.createHistogram = function createHistogram(opts) {
   return new RecordableHistogram(opts)

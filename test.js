@@ -1,5 +1,11 @@
 const test = require('brittle')
-const performance = require('.')
+const {
+  constants,
+  createHistogram,
+  monitorEventLoopDelay,
+  performance,
+  PerformanceObserver
+} = require('.')
 
 test('idleTime', (t) => {
   t.plan(2)
@@ -56,7 +62,7 @@ test('mark + observe', async (t) => {
 
     performance.mark('ignored - early to the party')
 
-    const obs = new performance.PerformanceObserver((list, observer) => {
+    const obs = new PerformanceObserver((list, observer) => {
       const entries = list.getEntries()
 
       if (count === 0) {
@@ -103,7 +109,7 @@ test('observe - buffered option', (t) => {
 
   performance.mark('first')
 
-  const obs = new performance.PerformanceObserver((list, observer) => {
+  const obs = new PerformanceObserver((list, observer) => {
     const entries = list.getEntries()
 
     t.is(entries.length, 2)
@@ -123,13 +129,13 @@ test('observe - error handling', (t) => {
   t.plan(3)
 
   {
-    const obs = new performance.PerformanceObserver(() => {})
+    const obs = new PerformanceObserver(() => {})
 
     t.exception.all(() => obs.observe({}), /TypeError/, 'no entry type specified')
   }
 
   {
-    const obs = new performance.PerformanceObserver(() => {})
+    const obs = new PerformanceObserver(() => {})
 
     t.exception(() => {
       obs.observe({ type: 'mark' })
@@ -138,7 +144,7 @@ test('observe - error handling', (t) => {
   }
 
   {
-    const obs = new performance.PerformanceObserver(() => {})
+    const obs = new PerformanceObserver(() => {})
 
     t.exception(() => {
       obs.observe({ entryTypes: ['mark'] })
@@ -150,7 +156,7 @@ test('observe - error handling', (t) => {
 test('observe - gc', (t) => {
   t.plan(6)
 
-  const obs = new performance.PerformanceObserver((list, observer) => {
+  const obs = new PerformanceObserver((list, observer) => {
     const entries = list.getEntries()
 
     t.is(entries[0].name, 'gc')
@@ -236,8 +242,88 @@ test('clearMarks + clear Measures', (t) => {
   t.is(performance.getEntries().length, 0)
 })
 
+test('resource timing - basic', (t) => {
+  t.plan(8)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+
+  t.is(performance.getEntries().length, 1)
+  t.is(performance.getEntriesByName('localhost:3000').length, 1)
+  t.is(performance.getEntriesByType('resource').length, 1)
+
+  const entry = performance.getEntries()[0]
+
+  t.is(entry.name, 'localhost:3000')
+  t.is(entry.entryType, 'resource')
+  t.is(entry.initiatorType, 'fetch')
+
+  performance.clearMarks()
+
+  t.is(performance.getEntries().length, 1)
+
+  performance.clearResourceTimings()
+
+  t.is(performance.getEntries().length, 0)
+})
+
+test('resource timing - full buffer event + clearResourceTimings', (t) => {
+  t.plan(2)
+
+  t.teardown(() => performance.clearResourceTimings())
+
+  performance.setResourceTimingBufferSize(1)
+
+  function listener() {
+    performance.removeEventListener('resourcetimingbufferfull', listener)
+
+    performance.clearResourceTimings()
+  }
+
+  performance.addEventListener('resourcetimingbufferfull', listener)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+  performance.markResourceTiming({}, 'localhost:3001', 'fetch', {}, '')
+
+  setTimeout(() => {
+    const entries = performance.getEntries()
+
+    t.is(entries.length, 1)
+    t.is(entries[0].name, 'localhost:3001')
+  })
+})
+
+test('resource timing - full buffer event + buffer size increase', (t) => {
+  t.plan(4)
+
+  t.teardown(() => performance.clearResourceTimings())
+
+  performance.setResourceTimingBufferSize(1)
+
+  function listener() {
+    t.pass('resourcetimingbufferfull event')
+
+    performance.removeEventListener('resourcetimingbufferfull', listener)
+
+    performance.setResourceTimingBufferSize(2)
+  }
+
+  performance.addEventListener('resourcetimingbufferfull', listener)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+  performance.markResourceTiming({}, 'localhost:3001', 'fetch', {}, '')
+
+  setTimeout(() => {
+    const entries = performance.getEntries()
+
+    t.is(entries.length, 2)
+
+    t.is(entries[0].name, 'localhost:3000')
+    t.is(entries[1].name, 'localhost:3001')
+  })
+})
+
 test('createHistogram - basic', (t) => {
-  const histogram = performance.createHistogram({ highest: 10, figures: 1 })
+  const histogram = createHistogram({ highest: 10, figures: 1 })
 
   t.is(histogram.min, 9223372036854776000)
   t.is(histogram.max, 0)
@@ -285,8 +371,8 @@ test('createHistogram - basic', (t) => {
 })
 
 test('createHistogram - add', (t) => {
-  const h1 = performance.createHistogram()
-  const h2 = performance.createHistogram()
+  const h1 = createHistogram()
+  const h2 = createHistogram()
 
   h1.record(1)
   h1.record(2)
@@ -307,7 +393,7 @@ test('createHistogram - add', (t) => {
 test('monitorEventLoopDelay', (t) => {
   t.plan(6)
 
-  const histogram = performance.monitorEventLoopDelay()
+  const histogram = monitorEventLoopDelay()
 
   t.is(histogram.count, 0)
 
@@ -323,5 +409,5 @@ test('monitorEventLoopDelay', (t) => {
 })
 
 test('constants', (t) => {
-  t.ok(performance.constants)
+  t.ok(constants)
 })
