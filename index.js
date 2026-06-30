@@ -22,6 +22,17 @@ const { RecordableHistogram, IntervalHistogram } = require('./lib/histogram')
 const { Event, EventTarget } = require('bare-events/web')
 const binding = require('./binding')
 
+// For Node.js compatibility
+class PerformanceNodeTiming {
+  get idleTime() {
+    return performance.idleTime()
+  }
+
+  get uvMetricsInfo() {
+    return performance.metricsInfo()
+  }
+}
+
 class Performance extends EventTarget {
   constructor() {
     super()
@@ -31,8 +42,9 @@ class Performance extends EventTarget {
     })
   }
 
-  get timeOrigin() {
-    return timeOrigin
+  // For Node.js compatibility
+  get performance() {
+    return performance
   }
 
   // For Node.js compatibility
@@ -40,8 +52,78 @@ class Performance extends EventTarget {
     return new PerformanceNodeTiming()
   }
 
+  get PerformanceEntry() {
+    return PerformanceEntry
+  }
+
+  get PerformanceMark() {
+    return PerformanceMark
+  }
+
+  get PerformanceMeasure() {
+    return PerformanceMeasure
+  }
+
+  // For Node.js compatibility
+  get PerformanceNodeTiming() {
+    return PerformanceNodeTiming
+  }
+
+  get PerformanceResourceTiming() {
+    return PerformanceResourceTiming
+  }
+
+  get PerformanceObserver() {
+    return PerformanceObserver
+  }
+
+  get PerformanceObserverEntryList() {
+    return PerformanceObserverEntryList
+  }
+
+  get timeOrigin() {
+    return timeOrigin
+  }
+
+  // For Node.js compatibility
+  get constants() {
+    return {
+      NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
+      NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
+      NODE_PERFORMANCE_GC_INCREMENTAL: -1,
+      NODE_PERFORMANCE_GC_WEAKCB: -1
+    }
+  }
+
   now() {
     return now()
+  }
+
+  eventLoopUtilization(prevUtil, secUtil) {
+    if (secUtil) {
+      const idle = prevUtil.idle - secUtil.idle
+      const active = prevUtil.active - secUtil.active
+      return { idle, active, utilization: active / (idle + active) }
+    }
+
+    let idle = this.idleTime()
+    if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
+
+    let active = now() - idle
+    if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
+
+    idle = idle - prevUtil.idle
+    active = active - prevUtil.active
+
+    return { idle, active, utilization: active / (idle + active) }
+  }
+
+  idleTime() {
+    return binding.idleTime()
+  }
+
+  metricsInfo() {
+    return binding.metricsInfo()
   }
 
   getEntries() {
@@ -58,6 +140,10 @@ class Performance extends EventTarget {
 
   mark(name, opts) {
     return mark(name, opts)
+  }
+
+  measure(name, start, end) {
+    return measure(name, start, end)
   }
 
   markResourceTiming(
@@ -82,10 +168,6 @@ class Performance extends EventTarget {
     )
   }
 
-  measure(name, start, end) {
-    return measure(name, start, end)
-  }
-
   clearMarks(name) {
     clearMarks(name)
   }
@@ -102,70 +184,15 @@ class Performance extends EventTarget {
     setResourceTimingBufferSize(maxSize)
   }
 
-  eventLoopUtilization(prevUtil, secUtil) {
-    return exports.eventLoopUtilization(prevUtil, secUtil)
+  createHistogram(opts) {
+    return new RecordableHistogram(opts)
+  }
+
+  monitorEventLoopDelay(opts) {
+    return new IntervalHistogram(opts)
   }
 }
 
-exports.performance = new Performance()
+const performance = new Performance()
 
-exports.idleTime = function idleTime() {
-  return binding.idleTime()
-}
-
-exports.metricsInfo = function metricsInfo() {
-  return binding.metricsInfo()
-}
-
-// For Node.js compatibility
-class PerformanceNodeTiming {
-  get idleTime() {
-    return exports.idleTime()
-  }
-
-  get uvMetricsInfo() {
-    return exports.metricsInfo()
-  }
-}
-
-exports.PerformanceEntry = PerformanceEntry
-exports.PerformanceResourceTiming = PerformanceResourceTiming
-exports.PerformanceMark = PerformanceMark
-exports.PerformanceMeasure = PerformanceMeasure
-exports.PerformanceObserverEntryList = PerformanceObserverEntryList
-exports.PerformanceObserver = PerformanceObserver
-
-exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
-  if (secUtil) {
-    const idle = prevUtil.idle - secUtil.idle
-    const active = prevUtil.active - secUtil.active
-    return { idle, active, utilization: active / (idle + active) }
-  }
-
-  let idle = exports.idleTime()
-  if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
-
-  let active = now() - idle
-  if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
-
-  idle = idle - prevUtil.idle
-  active = active - prevUtil.active
-
-  return { idle, active, utilization: active / (idle + active) }
-}
-
-exports.createHistogram = function createHistogram(opts) {
-  return new RecordableHistogram(opts)
-}
-
-exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
-  return new IntervalHistogram(opts)
-}
-
-// For Node.js compatibility
-exports.constants = {
-  NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
-  NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
-  NODE_PERFORMANCE_GC_INCREMENTAL: -1,
-  NODE_PERFORMANCE_GC_WEAKCB: -1
-}
+module.exports = performance

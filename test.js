@@ -1,11 +1,5 @@
 const test = require('brittle')
-const {
-  constants,
-  createHistogram,
-  monitorEventLoopDelay,
-  performance,
-  PerformanceObserver
-} = require('.')
+const performance = require('.')
 
 test('idleTime', (t) => {
   t.plan(2)
@@ -62,7 +56,7 @@ test('mark + observe', async (t) => {
 
     performance.mark('ignored - early to the party')
 
-    const obs = new PerformanceObserver((list, observer) => {
+    const obs = new performance.PerformanceObserver((list, observer) => {
       const entries = list.getEntries()
 
       if (count === 0) {
@@ -109,7 +103,7 @@ test('observe - buffered option', (t) => {
 
   performance.mark('first')
 
-  const obs = new PerformanceObserver((list, observer) => {
+  const obs = new performance.PerformanceObserver((list, observer) => {
     const entries = list.getEntries()
 
     t.is(entries.length, 2)
@@ -129,13 +123,13 @@ test('observe - error handling', (t) => {
   t.plan(3)
 
   {
-    const obs = new PerformanceObserver(() => {})
+    const obs = new performance.PerformanceObserver(() => {})
 
     t.exception.all(() => obs.observe({}), /TypeError/, 'no entry type specified')
   }
 
   {
-    const obs = new PerformanceObserver(() => {})
+    const obs = new performance.PerformanceObserver(() => {})
 
     t.exception(() => {
       obs.observe({ type: 'mark' })
@@ -144,7 +138,7 @@ test('observe - error handling', (t) => {
   }
 
   {
-    const obs = new PerformanceObserver(() => {})
+    const obs = new performance.PerformanceObserver(() => {})
 
     t.exception(() => {
       obs.observe({ entryTypes: ['mark'] })
@@ -156,7 +150,7 @@ test('observe - error handling', (t) => {
 test('observe - gc', (t) => {
   t.plan(6)
 
-  const obs = new PerformanceObserver((list, observer) => {
+  const obs = new performance.PerformanceObserver((list, observer) => {
     const entries = list.getEntries()
 
     t.is(entries[0].name, 'gc')
@@ -323,7 +317,7 @@ test('resource timing - full buffer event + buffer size increase', (t) => {
 })
 
 test('createHistogram - basic', (t) => {
-  const histogram = createHistogram({ highest: 10, figures: 1 })
+  const histogram = performance.createHistogram({ highest: 10, figures: 1 })
 
   t.is(histogram.min, 9223372036854776000)
   t.is(histogram.max, 0)
@@ -371,8 +365,8 @@ test('createHistogram - basic', (t) => {
 })
 
 test('createHistogram - add', (t) => {
-  const h1 = createHistogram()
-  const h2 = createHistogram()
+  const h1 = performance.createHistogram()
+  const h2 = performance.createHistogram()
 
   h1.record(1)
   h1.record(2)
@@ -393,7 +387,7 @@ test('createHistogram - add', (t) => {
 test('monitorEventLoopDelay', (t) => {
   t.plan(6)
 
-  const histogram = monitorEventLoopDelay()
+  const histogram = performance.monitorEventLoopDelay()
 
   t.is(histogram.count, 0)
 
@@ -409,5 +403,5 @@ test('monitorEventLoopDelay', (t) => {
 })
 
 test('constants', (t) => {
-  t.ok(constants)
+  t.ok(performance.constants)
 })
