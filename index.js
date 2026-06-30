@@ -16,7 +16,7 @@ const {
   markResourceTiming,
   measure,
   setResourceTimingBufferSize,
-  _registerEventHandler
+  registerEventHandler
 } = require('./lib/timing')
 const { RecordableHistogram, IntervalHistogram } = require('./lib/histogram')
 const { Event, EventTarget } = require('bare-events/web')
@@ -37,7 +37,7 @@ class Performance extends EventTarget {
   constructor() {
     super()
 
-    _registerEventHandler((eventName) => {
+    registerEventHandler((eventName) => {
       this.dispatchEvent(new Event(eventName))
     })
   }
