@@ -49,7 +49,7 @@ class Performance extends EventTarget {
 
   // For Node.js compatibility
   get nodeTiming() {
-    return new PerformanceNodeTiming()
+    return nodeTiming
   }
 
   get PerformanceEntry() {
@@ -194,5 +194,6 @@ class Performance extends EventTarget {
 }
 
 const performance = new Performance()
+const nodeTiming = new PerformanceNodeTiming()
 
 module.exports = performance
