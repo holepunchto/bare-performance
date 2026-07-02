@@ -25,13 +25,15 @@ const binding = require('./binding')
 // For Node.js compatibility
 class PerformanceNodeTiming {
   get idleTime() {
-    return performance.idleTime()
+    return module.exports.idleTime()
   }
 
   get uvMetricsInfo() {
-    return performance.metricsInfo()
+    return module.exports.metricsInfo()
   }
 }
+
+const nodeTiming = new PerformanceNodeTiming()
 
 class Performance extends EventTarget {
   constructor() {
@@ -44,7 +46,7 @@ class Performance extends EventTarget {
 
   // For Node.js compatibility
   get performance() {
-    return performance
+    return this
   }
 
   // For Node.js compatibility
@@ -193,7 +195,4 @@ class Performance extends EventTarget {
   }
 }
 
-const performance = new Performance()
-const nodeTiming = new PerformanceNodeTiming()
-
-module.exports = performance
+module.exports = new Performance()
