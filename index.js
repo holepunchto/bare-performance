@@ -3,103 +3,196 @@ const {
   PerformanceEntry,
   PerformanceMark,
   PerformanceMeasure,
-  PerformanceObserverEntryList,
   PerformanceObserver,
-  mark,
+  PerformanceObserverEntryList,
+  PerformanceResourceTiming,
   clearMarks,
-  measure,
   clearMeasures,
+  clearResourceTimings,
   getEntries,
   getEntriesByName,
-  getEntriesByType
+  getEntriesByType,
+  mark,
+  markResourceTiming,
+  measure,
+  setResourceTimingBufferSize,
+  registerEventHandler
 } = require('./lib/timing')
 const { RecordableHistogram, IntervalHistogram } = require('./lib/histogram')
+const { Event, EventTarget } = require('bare-events/web')
 const binding = require('./binding')
-
-exports.now = now
-
-exports.timeOrigin = timeOrigin
-
-exports.eventLoopUtilization = function eventLoopUtilization(prevUtil, secUtil) {
-  if (secUtil) {
-    const idle = prevUtil.idle - secUtil.idle
-    const active = prevUtil.active - secUtil.active
-    return { idle, active, utilization: active / (idle + active) }
-  }
-
-  let idle = exports.idleTime()
-  if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
-
-  let active = exports.now() - idle
-  if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
-
-  idle = idle - prevUtil.idle
-  active = active - prevUtil.active
-
-  return { idle, active, utilization: active / (idle + active) }
-}
-
-exports.idleTime = function idleTime() {
-  return binding.idleTime()
-}
-
-exports.metricsInfo = function metricsInfo() {
-  return binding.metricsInfo()
-}
-
-// For Node.js compatibility
-exports.performance = exports
 
 // For Node.js compatibility
 class PerformanceNodeTiming {
   get idleTime() {
-    return exports.idleTime()
+    return module.exports.idleTime()
   }
 
   get uvMetricsInfo() {
-    return exports.metricsInfo()
+    return module.exports.metricsInfo()
   }
 }
 
-// For Node.js compatibility
-exports.nodeTiming = new PerformanceNodeTiming()
+const nodeTiming = new PerformanceNodeTiming()
 
-exports.PerformanceEntry = PerformanceEntry
+class Performance extends EventTarget {
+  constructor() {
+    super()
 
-exports.PerformanceMark = PerformanceMark
+    registerEventHandler((eventName) => {
+      this.dispatchEvent(new Event(eventName))
+    })
+  }
 
-exports.PerformanceMeasure = PerformanceMeasure
+  // For Node.js compatibility
+  get performance() {
+    return this
+  }
 
-exports.PerformanceObserverEntryList = PerformanceObserverEntryList
+  // For Node.js compatibility
+  get nodeTiming() {
+    return nodeTiming
+  }
 
-exports.PerformanceObserver = PerformanceObserver
+  get PerformanceEntry() {
+    return PerformanceEntry
+  }
 
-exports.mark = mark
+  get PerformanceMark() {
+    return PerformanceMark
+  }
 
-exports.clearMarks = clearMarks
+  get PerformanceMeasure() {
+    return PerformanceMeasure
+  }
 
-exports.measure = measure
+  // For Node.js compatibility
+  get PerformanceNodeTiming() {
+    return PerformanceNodeTiming
+  }
 
-exports.clearMeasures = clearMeasures
+  get PerformanceResourceTiming() {
+    return PerformanceResourceTiming
+  }
 
-exports.getEntries = getEntries
+  get PerformanceObserver() {
+    return PerformanceObserver
+  }
 
-exports.getEntriesByName = getEntriesByName
+  get PerformanceObserverEntryList() {
+    return PerformanceObserverEntryList
+  }
 
-exports.getEntriesByType = getEntriesByType
+  get timeOrigin() {
+    return timeOrigin
+  }
 
-exports.createHistogram = function createHistogram(opts) {
-  return new RecordableHistogram(opts)
+  // For Node.js compatibility
+  get constants() {
+    return {
+      NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
+      NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
+      NODE_PERFORMANCE_GC_INCREMENTAL: -1,
+      NODE_PERFORMANCE_GC_WEAKCB: -1
+    }
+  }
+
+  now() {
+    return now()
+  }
+
+  eventLoopUtilization(prevUtil, secUtil) {
+    if (secUtil) {
+      const idle = prevUtil.idle - secUtil.idle
+      const active = prevUtil.active - secUtil.active
+      return { idle, active, utilization: active / (idle + active) }
+    }
+
+    let idle = this.idleTime()
+    if (idle === 0) return { idle: 0, active: 0, utilization: 0 }
+
+    let active = now() - idle
+    if (!prevUtil) return { idle, active, utilization: active / (idle + active) }
+
+    idle = idle - prevUtil.idle
+    active = active - prevUtil.active
+
+    return { idle, active, utilization: active / (idle + active) }
+  }
+
+  idleTime() {
+    return binding.idleTime()
+  }
+
+  metricsInfo() {
+    return binding.metricsInfo()
+  }
+
+  getEntries() {
+    return getEntries()
+  }
+
+  getEntriesByName(name) {
+    return getEntriesByName(name)
+  }
+
+  getEntriesByType(type) {
+    return getEntriesByType(type)
+  }
+
+  mark(name, opts) {
+    return mark(name, opts)
+  }
+
+  measure(name, start, end) {
+    return measure(name, start, end)
+  }
+
+  markResourceTiming(
+    timingInfo,
+    requestedUrl,
+    initiatorType,
+    global,
+    cacheMode,
+    bodyInfo,
+    responseStatus,
+    deliveryType
+  ) {
+    return markResourceTiming(
+      timingInfo,
+      requestedUrl,
+      initiatorType,
+      global,
+      cacheMode,
+      bodyInfo,
+      responseStatus,
+      deliveryType
+    )
+  }
+
+  clearMarks(name) {
+    clearMarks(name)
+  }
+
+  clearMeasures(name) {
+    clearMeasures(name)
+  }
+
+  clearResourceTimings(name) {
+    clearResourceTimings(name)
+  }
+
+  setResourceTimingBufferSize(maxSize) {
+    setResourceTimingBufferSize(maxSize)
+  }
+
+  createHistogram(opts) {
+    return new RecordableHistogram(opts)
+  }
+
+  monitorEventLoopDelay(opts) {
+    return new IntervalHistogram(opts)
+  }
 }
 
-exports.monitorEventLoopDelay = function monitorEventLoopDelay(opts) {
-  return new IntervalHistogram(opts)
-}
-
-// For Node.js compatibility
-exports.constants = {
-  NODE_PERFORMANCE_GC_MAJOR: binding.constants.MARK_COMPACT,
-  NODE_PERFORMANCE_GC_MINOR: binding.constants.GENERATIONAL,
-  NODE_PERFORMANCE_GC_INCREMENTAL: -1,
-  NODE_PERFORMANCE_GC_WEAKCB: -1
-}
+module.exports = new Performance()

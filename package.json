@@ -33,6 +33,9 @@
   "engines": {
     "bare": ">=1.27.0"
   },
+  "dependencies": {
+    "bare-events": "^2.9.1"
+  },
   "devDependencies": {
     "brittle": "^3.13.1",
     "cmake-bare": "^1.5.4",

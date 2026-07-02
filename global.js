@@ -6,3 +6,4 @@ global.PerformanceMark = performance.PerformanceMark
 global.PerformanceMeasure = performance.PerformanceMeasure
 global.PerformanceObserver = performance.PerformanceObserver
 global.PerformanceObserverEntryList = performance.PerformanceObserverEntryList
+global.PerformanceResourceTiming = performance.PerformanceResourceTiming

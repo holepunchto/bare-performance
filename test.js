@@ -236,6 +236,86 @@ test('clearMarks + clear Measures', (t) => {
   t.is(performance.getEntries().length, 0)
 })
 
+test('resource timing - basic', (t) => {
+  t.plan(8)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+
+  t.is(performance.getEntries().length, 1)
+  t.is(performance.getEntriesByName('localhost:3000').length, 1)
+  t.is(performance.getEntriesByType('resource').length, 1)
+
+  const entry = performance.getEntries()[0]
+
+  t.is(entry.name, 'localhost:3000')
+  t.is(entry.entryType, 'resource')
+  t.is(entry.initiatorType, 'fetch')
+
+  performance.clearMarks()
+
+  t.is(performance.getEntries().length, 1)
+
+  performance.clearResourceTimings()
+
+  t.is(performance.getEntries().length, 0)
+})
+
+test('resource timing - full buffer event + clearResourceTimings', (t) => {
+  t.plan(2)
+
+  t.teardown(() => performance.clearResourceTimings())
+
+  performance.setResourceTimingBufferSize(1)
+
+  function listener() {
+    performance.removeEventListener('resourcetimingbufferfull', listener)
+
+    performance.clearResourceTimings()
+  }
+
+  performance.addEventListener('resourcetimingbufferfull', listener)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+  performance.markResourceTiming({}, 'localhost:3001', 'fetch', {}, '')
+
+  setTimeout(() => {
+    const entries = performance.getEntries()
+
+    t.is(entries.length, 1)
+    t.is(entries[0].name, 'localhost:3001')
+  })
+})
+
+test('resource timing - full buffer event + buffer size increase', (t) => {
+  t.plan(4)
+
+  t.teardown(() => performance.clearResourceTimings())
+
+  performance.setResourceTimingBufferSize(1)
+
+  function listener() {
+    t.pass('resourcetimingbufferfull event')
+
+    performance.removeEventListener('resourcetimingbufferfull', listener)
+
+    performance.setResourceTimingBufferSize(2)
+  }
+
+  performance.addEventListener('resourcetimingbufferfull', listener)
+
+  performance.markResourceTiming({}, 'localhost:3000', 'fetch', {}, '')
+  performance.markResourceTiming({}, 'localhost:3001', 'fetch', {}, '')
+
+  setTimeout(() => {
+    const entries = performance.getEntries()
+
+    t.is(entries.length, 2)
+
+    t.is(entries[0].name, 'localhost:3000')
+    t.is(entries[1].name, 'localhost:3001')
+  })
+})
+
 test('createHistogram - basic', (t) => {
   const histogram = performance.createHistogram({ highest: 10, figures: 1 })
 
