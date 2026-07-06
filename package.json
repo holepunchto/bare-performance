@@ -18,7 +18,9 @@
   ],
   "addon": true,
   "scripts": {
-    "test": "prettier . --check && bare --expose-gc test.js"
+    "format": "prettier --write . && lunte --fix",
+    "lint": "prettier --check . && lunte",
+    "test": "bare --expose-gc test.js"
   },
   "repository": {
     "type": "git",
@@ -40,6 +42,7 @@
     "brittle": "^3.13.1",
     "cmake-bare": "^1.5.4",
     "cmake-fetch": "^1.4.7",
+    "lunte": "^1.8.4",
     "prettier": "^3.5.3",
     "prettier-config-holepunch": "^2.0.0"
   }
