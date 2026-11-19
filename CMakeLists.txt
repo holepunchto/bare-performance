@@ -20,7 +20,7 @@ option(HDR_HISTOGRAM_BUILD_PROGRAMS OFF)
 option(HDR_HISTOGRAM_INSTALL_SHARED OFF)
 option(HDR_HISTOGRAM_INSTALL_STATIC OFF)
 
-fetch_package("github:HdrHistogram/HdrHistogram_c#0.11.9")
+fetch_package("github:HdrHistogram/HdrHistogram_c#0.12.0")
 
 add_bare_module(bare_performance)
 
