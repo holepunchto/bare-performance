@@ -449,8 +449,26 @@ bare_performance_garbage_collection_tracking__on_end(js_garbage_collection_type_
   entry->duration = duration;
   entry->kind = type;
 
+  err = js_acquire_threadsafe_function(gc->on_new_entry);
+
+  if (err < 0) {
+    free(entry);
+
+    return;
+  }
+
   err = js_call_threadsafe_function(gc->on_new_entry, entry, js_threadsafe_function_nonblocking);
+
+  if (err == js_closing) {
+    free(entry);
+
+    return;
+  }
+
   if (err < 0) free(entry);
+
+  err = js_release_threadsafe_function(gc->on_new_entry, js_threadsafe_function_release);
+  assert(err == 0);
 }
 
 static void
