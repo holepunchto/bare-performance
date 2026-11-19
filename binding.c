@@ -401,6 +401,12 @@ bare_performance_garbage_collection_tracking__on_new_entry(js_env_t *env, js_val
 
   bare_performance_garbage_collection_entry_t *entry = (bare_performance_garbage_collection_entry_t *) data;
 
+  if (env == NULL) {
+    free(entry);
+
+    return;
+  }
+
   js_value_t *ctx;
   err = js_get_reference_value(env, entry->ctx, &ctx);
   assert(err == 0);
@@ -444,7 +450,7 @@ bare_performance_garbage_collection_tracking__on_end(js_garbage_collection_type_
   entry->kind = type;
 
   err = js_call_threadsafe_function(gc->on_new_entry, entry, js_threadsafe_function_nonblocking);
-  assert(err == 0);
+  if (err < 0) free(entry);
 }
 
 static void
